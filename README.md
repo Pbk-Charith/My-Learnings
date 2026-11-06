@@ -90,6 +90,15 @@
   - [8. Important Note About `0.x` Versions](#8-important-note-about-0x-versions)
   - [9. Interview Question](#9-interview-question)
   - [Key Takeaways](#key-takeaways)
+  - [28. Why Routing Order Is Important in Express.js](#28-why-routing-order-is-important-in-expressjs)
+    - [Your example](#your-example)
+    - [What happens when you visit each URL?](#what-happens-when-you-visit-each-url)
+    - [Why should the more specific path come first?](#why-should-the-more-specific-path-come-first)
+    - [Visualizing the order](#visualizing-the-order)
+    - [Correct routing order](#correct-routing-order)
+    - [`app.use()` vs `app.get()` — important distinction](#appuse-vs-appget--important-distinction)
+    - [What does `next()` do?](#what-does-next-do)
+    - [Interview answer](#interview-answer)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
