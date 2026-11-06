@@ -1450,3 +1450,204 @@ flowchart TD
 
 **Learning objective:** Understand how REST APIs work, build REST endpoints using Node.js and Express.js, connect a database, handle authentication and errors, and integrate the backend with a React frontend.
 """
+
+---
+### Understanding `^` and `~` in Package Versions
+
+When working with Node.js projects, you may see symbols such as `^` and `~` before dependency versions in `package.json`.
+
+These symbols define the version range that npm can use when resolving package updates. They are part of **Semantic Versioning (SemVer)**.
+
+## 1. Semantic Versioning (SemVer)
+
+A package version generally follows this format:
+
+```text
+MAJOR.MINOR.PATCH
+```
+
+For example:
+
+```text
+4.18.2
+```
+
+| Part | Meaning |
+|---|---|
+| MAJOR (`4`) | Breaking changes may be introduced |
+| MINOR (`18`) | New backward-compatible functionality |
+| PATCH (`2`) | Backward-compatible bug fixes |
+
+## 2. Caret (`^`) — Compatible Minor and Patch Updates
+
+The caret allows npm to resolve compatible updates without changing the leftmost non-zero version component.
+
+Example:
+
+```json
+{
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+```
+
+For this example, the allowed range is:
+
+```text
+>=4.18.2 <5.0.0
+```
+
+Examples:
+
+| Version | Allowed by `^4.18.2`? |
+|---|---|
+| `4.18.2` | Yes |
+| `4.18.3` | Yes |
+| `4.19.0` | Yes |
+| `4.20.0` | Yes |
+| `5.0.0` | No |
+
+In short, `^4.18.2` allows compatible minor and patch updates within major version `4`.
+
+## 3. Tilde (`~`) — Patch Updates
+
+The tilde allows patch-level updates but does not move to the next minor version.
+
+Example:
+
+```json
+{
+  "dependencies": {
+    "express": "~4.18.2"
+  }
+}
+```
+
+For this example, the allowed range is:
+
+```text
+>=4.18.2 <4.19.0
+```
+
+Examples:
+
+| Version | Allowed by `~4.18.2`? |
+|---|---|
+| `4.18.2` | Yes |
+| `4.18.3` | Yes |
+| `4.18.9` | Yes |
+| `4.19.0` | No |
+| `5.0.0` | No |
+
+In short, `~4.18.2` allows patch updates within minor version `4.18`.
+
+## 4. Difference Between `^` and `~`
+
+| Feature | Caret (`^`) | Tilde (`~`) |
+|---|---|---|
+| Patch updates | Yes | Yes |
+| Minor updates | Yes, when compatible | No |
+| Major updates | No | No |
+| Update range | Broader | More restrictive |
+| Example | `^4.18.2` | `~4.18.2` |
+
+## 5. Exact Version — No Symbol
+
+A version without `^` or `~` specifies an exact version range.
+
+Example:
+
+```json
+{
+  "dependencies": {
+    "express": "4.18.2"
+  }
+}
+```
+
+This dependency range does not allow npm to select a different Express version.
+
+## 6. Practical `package.json` Example
+
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "express": "~4.18.2",
+    "mongoose": "8.0.0"
+  }
+}
+```
+
+- `react`: Allows compatible minor and patch updates within major version `18`.
+- `express`: Allows patch updates within minor version `4.18`.
+- `mongoose`: Specifies the exact version range `8.0.0`.
+
+## 7. Useful npm Commands
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Update dependencies within their allowed version ranges:
+
+```bash
+npm update
+```
+
+Check installed dependency versions:
+
+```bash
+npm list
+```
+
+Check which dependencies are outdated:
+
+```bash
+npm outdated
+```
+
+### What does `package-lock.json` do?
+
+The `package-lock.json` file records the resolved dependency versions and dependency tree. It helps ensure consistent installations across different environments.
+
+When a lockfile is present and compatible with `package.json`, `npm install` uses the lockfile to guide dependency resolution. `npm ci` installs from the lockfile and is commonly used in automated build environments.
+
+## 8. Important Note About `0.x` Versions
+
+Caret behaviour is more restrictive for versions below `1.0.0`.
+
+For example:
+
+```text
+^0.2.3
+```
+
+allows versions from `0.2.3` up to, but not including, `0.3.0`.
+
+This is because early `0.x` releases may introduce breaking changes in minor versions.
+
+## 9. Interview Question
+
+**Q: What is the difference between `^` and `~` in `package.json`?**
+
+**Answer:**
+
+The caret (`^`) allows compatible minor and patch updates, while the tilde (`~`) allows patch updates only.
+
+For example:
+
+- `^4.18.2` allows versions from `4.18.2` up to, but not including, `5.0.0`.
+- `~4.18.2` allows versions from `4.18.2` up to, but not including, `4.19.0`.
+
+## Key Takeaways
+
+- `^` — Allows compatible minor and patch updates.
+- `~` — Allows patch updates within the specified minor version.
+- No symbol — Specifies an exact version range.
+- `package-lock.json` — Records resolved dependency versions.
+- `npm update` — Updates dependencies within the ranges allowed by `package.json`.
+"""
