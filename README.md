@@ -99,6 +99,23 @@
     - [`app.use()` vs `app.get()` — important distinction](#appuse-vs-appget--important-distinction)
     - [What does `next()` do?](#what-does-next-do)
     - [Interview answer](#interview-answer)
+  - [**Key takeaway:** In Express.js, registration order matters. Put specific handlers first, general handlers later, and catch-all handlers last.](#key-takeaway-in-expressjs-registration-order-matters-put-specific-handlers-first-general-handlers-later-and-catch-all-handlers-last)
+  - [This README covers REST APIs, Express.js, routing, middleware, CRUD operations, and backend development.](#this-readme-covers-rest-apis-expressjs-routing-middleware-crud-operations-and-backend-development)
+  - [29. Difference Between `app.use()`, `app.get()`, `app.post()`, and Other Express Methods](#29-difference-between-appuse-appget-apppost-and-other-express-methods)
+    - [29.1 Quick comparison](#291-quick-comparison)
+    - [29.2 `app.use()` — register middleware](#292-appuse--register-middleware)
+    - [29.3 `app.get()` — handle GET requests](#293-appget--handle-get-requests)
+    - [29.4 `app.post()` — handle POST requests](#294-apppost--handle-post-requests)
+    - [29.5 `app.put()` — replace a resource](#295-appput--replace-a-resource)
+    - [29.6 `app.patch()` — partially modify a resource](#296-apppatch--partially-modify-a-resource)
+    - [29.7 `app.delete()` — delete a resource](#297-appdelete--delete-a-resource)
+    - [29.8 `app.all()` — handle all HTTP methods for a route](#298-appall--handle-all-http-methods-for-a-route)
+    - [29.9 `app.listen()` — start the server](#299-applisten--start-the-server)
+    - [29.10 Visual request flow](#2910-visual-request-flow)
+    - [29.11 `app.use()` vs `app.get()` — practical difference](#2911-appuse-vs-appget--practical-difference)
+    - [29.12 Important: route matching and registration order](#2912-important-route-matching-and-registration-order)
+    - [29.13 Complete example](#2913-complete-example)
+    - [29.14 Interview question](#2914-interview-question)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
