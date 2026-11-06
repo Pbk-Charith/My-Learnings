@@ -1942,4 +1942,279 @@ Do not call `next()` after sending a response unless you intentionally want to p
 **Answer:** Express executes middleware and route handlers in the order they are registered. Since `app.use()` matches path prefixes, a general route such as `/hello` can match a more specific path such as `/hello/2`. If the general handler sends a response first, the specific handler will not execute. Therefore, we should register specific routes before general routes and keep fallback handlers last. Calling `next()` passes control to the next matching middleware or handler.
 
 **Key takeaway:** In Express.js, registration order matters. Put specific handlers first, general handlers later, and catch-all handlers last.
-"""
+---
+This README covers REST APIs, Express.js, routing, middleware, CRUD operations, and backend development.
+---
+
+## 29. Difference Between `app.use()`, `app.get()`, `app.post()`, and Other Express Methods
+
+Express provides methods for registering middleware and handling HTTP requests. The key distinction is that `app.use()` is primarily used to register middleware, while methods such as `app.get()` and `app.post()` register handlers for specific HTTP methods.
+
+### 29.1 Quick comparison
+
+| Express method | Matches | Common purpose |
+|---|---|---|
+| `app.use()` | Middleware for any HTTP method; usually a path prefix | Register middleware |
+| `app.get()` | GET | Retrieve data |
+| `app.post()` | POST | Create a resource or submit data |
+| `app.put()` | PUT | Replace a resource representation |
+| `app.patch()` | PATCH | Partially modify a resource |
+| `app.delete()` | DELETE | Delete a resource |
+| `app.all()` | All HTTP methods for a matching route | Shared handling across methods |
+| `app.listen()` | Not a route method | Start the HTTP server |
+
+### 29.2 `app.use()` — register middleware
+
+`app.use()` registers middleware in the Express request-response pipeline. It can run for different HTTP methods and, when given a path, generally matches that path prefix.
+
+```javascript
+app.use("/hello", (req, res) => {
+    res.send("Hello Charith!");
+});
+```
+
+This middleware can match requests such as:
+
+```text
+GET     /hello
+POST    /hello
+PUT     /hello
+DELETE  /hello
+GET     /hello/2
+GET     /hello/profile
+```
+
+Because this handler sends a response, later matching handlers will not run for that request unless control is passed onward before the response is sent.
+
+Middleware commonly performs logging, authentication, validation, parsing, and other cross-cutting tasks.
+
+### 29.3 `app.get()` — handle GET requests
+
+Use `app.get()` to handle GET requests, commonly to retrieve resources.
+
+```javascript
+app.get("/users", (req, res) => {
+    res.status(200).json({
+        message: "Getting all users"
+    });
+});
+```
+
+Request:
+
+```http
+GET /users
+```
+
+### 29.4 `app.post()` — handle POST requests
+
+Use `app.post()` to handle POST requests, commonly to create a resource or submit data.
+
+```javascript
+app.post("/users", (req, res) => {
+    res.status(201).json({
+        message: "User created"
+    });
+});
+```
+
+Request:
+
+```http
+POST /users
+Content-Type: application/json
+```
+
+### 29.5 `app.put()` — replace a resource
+
+Use `app.put()` to handle PUT requests. PUT generally replaces the target resource representation.
+
+```javascript
+app.put("/users/:id", (req, res) => {
+    res.json({
+        message: `Replace user ${req.params.id}`
+    });
+});
+```
+
+Request:
+
+```http
+PUT /users/101
+```
+
+### 29.6 `app.patch()` — partially modify a resource
+
+Use `app.patch()` when the client is sending a partial modification.
+
+```javascript
+app.patch("/users/:id", (req, res) => {
+    res.json({
+        message: `Partially update user ${req.params.id}`
+    });
+});
+```
+
+Request:
+
+```http
+PATCH /users/101
+```
+
+### 29.7 `app.delete()` — delete a resource
+
+Use `app.delete()` to handle DELETE requests.
+
+```javascript
+app.delete("/users/:id", (req, res) => {
+    res.status(200).json({
+        message: `User ${req.params.id} deleted`
+    });
+});
+```
+
+Request:
+
+```http
+DELETE /users/101
+```
+
+### 29.8 `app.all()` — handle all HTTP methods for a route
+
+`app.all()` registers a handler for all HTTP methods that match the route path.
+
+```javascript
+app.all("/hello", (req, res) => {
+    res.send("This route accepts different HTTP methods");
+});
+```
+
+It can match GET, POST, PUT, PATCH, DELETE, and other HTTP methods for `/hello`.
+
+### 29.9 `app.listen()` — start the server
+
+`app.listen()` starts the HTTP server and makes it listen on a port. It does not define an API route.
+
+```javascript
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
+
+### 29.10 Visual request flow
+
+```mermaid
+flowchart TD
+    A[Incoming HTTP request] --> B[Application middleware: app.use]
+    B --> C{Which HTTP method?}
+    C -->|GET| D[app.get]
+    C -->|POST| E[app.post]
+    C -->|PUT| F[app.put]
+    C -->|PATCH| G[app.patch]
+    C -->|DELETE| H[app.delete]
+    D --> I[Send response]
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+```
+
+### 29.11 `app.use()` vs `app.get()` — practical difference
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use("/hello", (req, res, next) => {
+    console.log("Middleware executed");
+    next();
+});
+
+app.get("/hello", (req, res) => {
+    res.send("Hello Charith!");
+});
+
+app.listen(3000);
+```
+
+For `GET /hello`:
+
+1. The `/hello` middleware registered with `app.use()` runs.
+2. `next()` passes control to the next matching handler.
+3. `app.get("/hello")` handles the GET request.
+4. The route sends the response.
+
+For `POST /hello`, the middleware runs, but the `app.get()` handler does not match. If no other POST handler exists, Express continues through the stack and ultimately returns a 404 response.
+
+### 29.12 Important: route matching and registration order
+
+Express processes middleware and route handlers in registration order. A broad `app.use("/hello", ...)` can match `/hello/2`. If it sends a response, a later handler for `/hello/2` will not be reached.
+
+Register specific response-producing handlers before broader ones, and keep fallback handlers last.
+
+### 29.13 Complete example
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use(express.json());
+
+// General middleware: runs for requests that pass through it
+app.use((req, res, next) => {
+    console.log(req.method, req.url);
+    next();
+});
+
+// GET: retrieve users
+app.get("/users", (req, res) => {
+    res.json({ message: "Get all users" });
+});
+
+// POST: create user
+app.post("/users", (req, res) => {
+    res.status(201).json({ message: "Create user" });
+});
+
+// PUT: replace user
+app.put("/users/:id", (req, res) => {
+    res.json({ message: `Replace user ${req.params.id}` });
+});
+
+// PATCH: partially update user
+app.patch("/users/:id", (req, res) => {
+    res.json({ message: `Update user ${req.params.id}` });
+});
+
+// DELETE: delete user
+app.delete("/users/:id", (req, res) => {
+    res.json({ message: `Delete user ${req.params.id}` });
+});
+
+// Fallback handler: keep after the routes
+app.use((req, res) => {
+    res.status(404).json({ message: "Route not found" });
+});
+
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
+
+### 29.14 Interview question
+
+**Question: What is the difference between `app.use()` and `app.get()` in Express.js?**
+
+**Answer:** `app.use()` registers middleware that can run for multiple HTTP methods and generally matches a path prefix. `app.get()` registers a route handler specifically for GET requests. Middleware is commonly used for logging, authentication, validation, and request parsing, while GET routes are commonly used to retrieve resources.
+
+**Quick revision:**
+
+- `app.use()` — register middleware.
+- `app.get()` — handle GET requests.
+- `app.post()` — handle POST requests.
+- `app.put()` — handle PUT requests.
+- `app.patch()` — handle PATCH requests.
+- `app.delete()` — handle DELETE requests.
+- `app.all()` — handle all HTTP methods for a matching route.
+- `app.listen()` — start the server.
+---
