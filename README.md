@@ -118,45 +118,6 @@
     - [29.14 Interview question](#2914-interview-question)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-# My-Learnings
-This is the repo where you can see everything irrespective of the subject. You can see about news, Cricket, daily updates, technologies and etc.. 
----
-
-REST APIs & Express.js — Complete Guide
-
-> A practical guide to understanding RESTful APIs and building backend services with Node.js and Express.js.
-
-## Table of Contents
-
-1. [Introduction](#1-introduction)
-2. [What Is an API?](#2-what-is-an-api)
-3. [What Is REST?](#3-what-is-rest)
-4. [REST Architecture and Request Lifecycle](#4-rest-architecture-and-request-lifecycle)
-5. [HTTP Methods](#5-http-methods)
-6. [HTTP Status Codes](#6-http-status-codes)
-7. [Request and Response Structure](#7-request-and-response-structure)
-8. [REST API Design Principles](#8-rest-api-design-principles)
-9. [What Is Node.js?](#9-what-is-nodejs)
-10. [What Is Express.js?](#10-what-is-expressjs)
-11. [Creating an Express.js Server](#11-creating-an-expressjs-server)
-12. [Routing and Route Parameters](#12-routing-and-route-parameters)
-13. [Request and Response Objects](#13-request-and-response-objects)
-14. [Middleware](#14-middleware)
-15. [Express Router](#15-express-router)
-16. [Controllers and Project Structure](#16-controllers-and-project-structure)
-17. [CRUD REST API Example](#17-crud-rest-api-example)
-18. [Calling APIs from React](#18-calling-apis-from-react)
-19. [Error Handling](#19-error-handling)
-20. [Authentication and Authorization](#20-authentication-and-authorization)
-21. [CORS, Validation, and Security](#21-cors-validation-and-security)
-22. [Pagination, Filtering, Sorting, and Versioning](#22-pagination-filtering-sorting-and-versioning)
-23. [REST vs SOAP vs GraphQL](#23-rest-vs-soap-vs-graphql)
-24. [Node.js vs Express.js vs React.js](#24-nodejs-vs-expressjs-vs-reactjs)
-25. [Testing REST APIs](#25-testing-rest-apis)
-26. [Common Interview Questions](#26-common-interview-questions)
-27. [Quick Revision](#27-quick-revision)
-
 ---
 
 ## 1. Introduction
