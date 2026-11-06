@@ -1746,3 +1746,191 @@ For example:
 - `package-lock.json` — Records resolved dependency versions.
 - `npm update` — Updates dependencies within the ranges allowed by `package.json`.
 """
+
+## 28. Why Routing Order Is Important in Express.js
+
+Express processes middleware and route handlers **in the order they are registered**. When a matching handler sends a response with `res.send()`, `res.json()`, or another response method, the request-response cycle ends. Later handlers are not executed for that request unless control is explicitly passed onward with `next()`.
+
+This is especially important when using `app.use()` because it matches a path prefix, not only an exact URL.
+
+### Your example
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use("/hello/2", (req, res) => {
+    res.send("Hello sai charith!");
+});
+
+app.use("/hello", (req, res) => {
+    res.send("Hello charith!");
+});
+
+app.use("/test/2", (req, res) => {
+    res.send("Hello Worldss 2!");
+});
+
+app.use("/test", (req, res) => {
+    res.send("Hello Worldss!");
+});
+
+app.use("/", (req, res) => {
+    res.send("Hi sai charith!");
+});
+
+app.listen(3000, () => {
+    console.log("Server is running on port 3000...");
+});
+```
+
+### What happens when you visit each URL?
+
+With the handlers in your current order:
+
+| Request URL | Matching handler that responds | Response |
+|---|---|---|
+| `http://localhost:3000/hello/2` | `/hello/2` | `Hello sai charith!` |
+| `http://localhost:3000/hello` | `/hello` | `Hello charith!` |
+| `http://localhost:3000/test/2` | `/test/2` | `Hello Worldss 2!` |
+| `http://localhost:3000/test` | `/test` | `Hello Worldss!` |
+| `http://localhost:3000/anything` | `/` | `Hi sai charith!` |
+
+### Why should the more specific path come first?
+
+Consider what happens if you change the order:
+
+```javascript
+app.use("/hello", (req, res) => {
+    res.send("Hello charith!");
+});
+
+app.use("/hello/2", (req, res) => {
+    res.send("Hello sai charith!");
+});
+```
+
+Now request:
+
+```http
+GET /hello/2
+```
+
+The first middleware mounted at `/hello` also matches `/hello/2`, because `/hello` is a matching path prefix. It sends `Hello charith!` and ends the response. Therefore, the `/hello/2` handler is never reached.
+
+The same issue occurs with `/test` and `/test/2`.
+
+### Visualizing the order
+
+```mermaid
+flowchart TD
+    A[Incoming HTTP request] --> B{Does /hello/2 match?}
+    B -->|Yes| C[Send Hello sai charith]
+    B -->|No| D{Does /hello match?}
+    D -->|Yes| E[Send Hello charith]
+    D -->|No| F{Does /test/2 match?}
+    F -->|Yes| G[Send Hello Worldss 2]
+    F -->|No| H{Does /test match?}
+    H -->|Yes| I[Send Hello Worldss]
+    H -->|No| J[Fallback / handler]
+    C --> K[Response ends]
+    E --> K
+    G --> K
+    I --> K
+    J --> K
+```
+
+### Correct routing order
+
+Follow this general rule:
+
+1. Register specific paths before general paths.
+2. Register broad prefix middleware after more specific middleware when the broad middleware sends a response.
+3. Put the fallback handler (`/`) or 404 handler after the routes it should follow.
+4. Put error-handling middleware after routes and other middleware.
+
+Example:
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use("/hello/2", (req, res) => {
+    res.send("Hello sai charith!");
+});
+
+app.use("/hello", (req, res) => {
+    res.send("Hello charith!");
+});
+
+app.use("/test/2", (req, res) => {
+    res.send("Hello Worldss 2!");
+});
+
+app.use("/test", (req, res) => {
+    res.send("Hello Worldss!");
+});
+
+// Keep the catch-all handler last
+app.use("/", (req, res) => {
+    res.send("Hi sai charith!");
+});
+
+app.listen(3000, () => {
+    console.log("Server is running on port 3000...");
+});
+```
+
+### `app.use()` vs `app.get()` — important distinction
+
+`app.use()` registers middleware and generally matches a path prefix. It can run for multiple HTTP methods.
+
+```javascript
+app.use("/hello", (req, res) => {
+    res.send("Matched the /hello path prefix");
+});
+```
+
+This can match requests such as `/hello`, `/hello/2`, and `/hello/profile`.
+
+`app.get()` registers a handler for GET requests at a route path. Express route matching is more specific than middleware prefix matching.
+
+```javascript
+app.get("/hello", (req, res) => {
+    res.send("Exact hello route");
+});
+
+app.get("/hello/2", (req, res) => {
+    res.send("Hello route 2");
+});
+```
+
+For a conventional REST API, use the HTTP method that describes the operation, such as `app.get()`, `app.post()`, `app.patch()`, and `app.delete()`.
+
+### What does `next()` do?
+
+If middleware should not finish the response, it can call `next()` to pass control to the next matching handler.
+
+```javascript
+app.use("/hello", (req, res, next) => {
+    console.log("Hello middleware executed");
+    next();
+});
+
+app.use("/hello", (req, res) => {
+    res.send("Hello Charith!");
+});
+```
+
+The first middleware logs the request and calls `next()`. The second matching handler then sends the response.
+
+Do not call `next()` after sending a response unless you intentionally want to pass control to another handler; doing so can cause errors such as attempting to send headers twice.
+
+### Interview answer
+
+**Question: Why is routing order important in Express.js?**
+
+**Answer:** Express executes middleware and route handlers in the order they are registered. Since `app.use()` matches path prefixes, a general route such as `/hello` can match a more specific path such as `/hello/2`. If the general handler sends a response first, the specific handler will not execute. Therefore, we should register specific routes before general routes and keep fallback handlers last. Calling `next()` passes control to the next matching middleware or handler.
+
+**Key takeaway:** In Express.js, registration order matters. Put specific handlers first, general handlers later, and catch-all handlers last.
+"""
