@@ -1,2 +1,1452 @@
 # My-Learnings
 This is the repo where you can see everything irrespective of the subject. You can see about news, Cricket, daily updates, technologies and etc.. 
+---
+
+REST APIs & Express.js — Complete Guide
+
+> A practical guide to understanding RESTful APIs and building backend services with Node.js and Express.js.
+
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [What Is an API?](#2-what-is-an-api)
+3. [What Is REST?](#3-what-is-rest)
+4. [REST Architecture and Request Lifecycle](#4-rest-architecture-and-request-lifecycle)
+5. [HTTP Methods](#5-http-methods)
+6. [HTTP Status Codes](#6-http-status-codes)
+7. [Request and Response Structure](#7-request-and-response-structure)
+8. [REST API Design Principles](#8-rest-api-design-principles)
+9. [What Is Node.js?](#9-what-is-nodejs)
+10. [What Is Express.js?](#10-what-is-expressjs)
+11. [Creating an Express.js Server](#11-creating-an-expressjs-server)
+12. [Routing and Route Parameters](#12-routing-and-route-parameters)
+13. [Request and Response Objects](#13-request-and-response-objects)
+14. [Middleware](#14-middleware)
+15. [Express Router](#15-express-router)
+16. [Controllers and Project Structure](#16-controllers-and-project-structure)
+17. [CRUD REST API Example](#17-crud-rest-api-example)
+18. [Calling APIs from React](#18-calling-apis-from-react)
+19. [Error Handling](#19-error-handling)
+20. [Authentication and Authorization](#20-authentication-and-authorization)
+21. [CORS, Validation, and Security](#21-cors-validation-and-security)
+22. [Pagination, Filtering, Sorting, and Versioning](#22-pagination-filtering-sorting-and-versioning)
+23. [REST vs SOAP vs GraphQL](#23-rest-vs-soap-vs-graphql)
+24. [Node.js vs Express.js vs React.js](#24-nodejs-vs-expressjs-vs-reactjs)
+25. [Testing REST APIs](#25-testing-rest-apis)
+26. [Common Interview Questions](#26-common-interview-questions)
+27. [Quick Revision](#27-quick-revision)
+
+---
+
+## 1. Introduction
+
+Modern applications are usually divided into a frontend, backend, and database.
+
+- **Frontend:** Displays the user interface. Example: React.js.
+- **Backend:** Implements business logic and exposes APIs. Example: Node.js with Express.js.
+- **Database:** Stores application data. Example: MongoDB, MySQL, or PostgreSQL.
+- **API:** Defines how different parts of a system communicate.
+
+A REST API is a common way for a frontend and backend to exchange data over HTTP.
+
+## 2. What Is an API?
+
+API stands for **Application Programming Interface**. It is a defined way for one software component to communicate with another.
+
+For example, when a user opens a profile page:
+
+1. The frontend sends a request for the user's profile.
+2. The backend receives and processes the request.
+3. The backend may retrieve the user's information from a database.
+4. The backend returns a response, often in JSON.
+5. The frontend displays the profile.
+
+An API is a contract between the client and the server: it defines the available operations, inputs, and outputs.
+
+## 3. What Is REST?
+
+**REST (Representational State Transfer)** is an architectural style for designing networked applications. A RESTful API commonly exposes resources through URLs and uses HTTP methods to operate on those resources.
+
+Example resource: users.
+
+```http
+GET    /api/users
+GET    /api/users/101
+POST   /api/users
+PUT    /api/users/101
+PATCH  /api/users/101
+DELETE /api/users/101
+```
+
+REST is an architectural style, not a programming language, library, or protocol.
+
+### 3.1 What is a resource?
+
+A resource is an entity that an API exposes, such as:
+
+- Users
+- Products
+- Orders
+- Payer groups
+- Payments
+
+A resource is usually represented by a noun in the URL, such as `/api/users`.
+
+### 3.2 Six REST architectural constraints
+
+A system is considered RESTful when it follows these architectural constraints:
+
+1. **Client–Server:** The client interface and server data responsibilities are separated.
+2. **Stateless:** Each request contains the information needed to process it. The server does not rely on stored client session context between requests.
+3. **Cacheable:** Responses should indicate whether they can be cached.
+4. **Uniform Interface:** Resources are identified and manipulated through a consistent interface.
+5. **Layered System:** A client may communicate through intermediaries such as gateways or proxies without needing to know the system's internal layers.
+6. **Code on Demand (optional):** A server may send executable code to a client. This constraint is optional.
+
+## 4. REST Architecture and Request Lifecycle
+
+```mermaid
+flowchart TD
+    A[User interacts with React UI] --> B[Axios or Fetch sends HTTP request]
+    B --> C[Express server receives request]
+    C --> D[Middleware: logging, authentication, validation]
+    D --> E[Route handler]
+    E --> F[Controller / business logic]
+    F --> G[Service or data-access layer]
+    G --> H[(Database)]
+    H --> G
+    G --> F
+    F --> I[HTTP response with status and JSON]
+    I --> J[React updates the UI]
+```
+
+### Example: Fetching users
+
+```http
+GET /api/users
+```
+
+Example JSON response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Charith",
+      "email": "charith@example.com"
+    }
+  ]
+}
+```
+
+The exact response structure is an API design choice. Keep it consistent across endpoints.
+
+## 5. HTTP Methods
+
+HTTP methods describe the operation a client wants to perform.
+
+| Method | Purpose | Example |
+|---|---|---|
+| GET | Read a resource | `GET /api/users` |
+| POST | Create a resource or trigger an operation | `POST /api/users` |
+| PUT | Replace a resource representation | `PUT /api/users/101` |
+| PATCH | Partially modify a resource | `PATCH /api/users/101` |
+| DELETE | Delete a resource | `DELETE /api/users/101` |
+
+### GET — Retrieve data
+
+```http
+GET /api/users
+```
+
+Returns a collection of users.
+
+### POST — Create data
+
+```http
+POST /api/users
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Charith",
+  "email": "charith@example.com"
+}
+```
+
+### PUT — Replace a resource
+
+```http
+PUT /api/users/101
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Charith P",
+  "email": "charith.p@example.com"
+}
+```
+
+PUT generally represents replacement of the target resource. The API should document how omitted fields are handled.
+
+### PATCH — Partially update a resource
+
+```http
+PATCH /api/users/101
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Charith P"
+}
+```
+
+Only the supplied field is being changed, according to the API's patch semantics.
+
+### DELETE — Remove a resource
+
+```http
+DELETE /api/users/101
+```
+
+### PUT vs PATCH
+
+| PUT | PATCH |
+|---|---|
+| Usually replaces the resource representation | Applies a partial modification |
+| Client generally sends the full representation | Client sends the changes |
+| Defined as idempotent | Idempotency depends on the patch operation |
+
+**Idempotency:** An operation is idempotent when repeating the same request has the same intended effect as performing it once. GET, PUT, and DELETE are defined as idempotent methods. POST is not generally idempotent. PATCH may or may not be idempotent depending on its implementation.
+
+## 6. HTTP Status Codes
+
+Status codes tell the client the outcome of a request.
+
+| Code | Name | Meaning |
+|---|---|---|
+| 200 | OK | Request succeeded |
+| 201 | Created | A resource was created |
+| 202 | Accepted | Request accepted for processing |
+| 204 | No Content | Request succeeded with no response body |
+| 301 | Moved Permanently | Resource has a permanent new URL |
+| 400 | Bad Request | Request is invalid |
+| 401 | Unauthorized | Authentication is missing or invalid |
+| 403 | Forbidden | Client is not allowed to perform the action |
+| 404 | Not Found | Resource does not exist |
+| 405 | Method Not Allowed | HTTP method is not supported for the resource |
+| 409 | Conflict | Request conflicts with the current resource state |
+| 415 | Unsupported Media Type | Request content type is unsupported |
+| 422 | Unprocessable Content | Request syntax is valid but its instructions cannot be processed |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Unexpected server error |
+| 502 | Bad Gateway | Invalid response from an upstream server |
+| 503 | Service Unavailable | Server temporarily cannot handle the request |
+
+Important distinction:
+
+- **401:** Authentication problem — the client has not provided valid credentials.
+- **403:** Authorization problem — the client is known but lacks permission.
+
+## 7. Request and Response Structure
+
+An HTTP request can contain:
+
+- Method
+- URL/path
+- Headers
+- Query parameters
+- Path parameters
+- Body (when applicable)
+
+Example:
+
+```http
+POST /api/users?source=website HTTP/1.1
+Host: localhost:5000
+Content-Type: application/json
+Authorization: Bearer <access-token>
+
+{
+  "name": "Charith",
+  "email": "charith@example.com"
+}
+```
+
+An HTTP response contains a status code, headers, and sometimes a body.
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "id": 101,
+    "name": "Charith"
+  }
+}
+```
+
+### 7.1 Path parameters vs query parameters vs request body
+
+**Path parameter:** Identifies a particular resource.
+
+```http
+GET /api/users/101
+```
+
+Express:
+
+```javascript
+req.params.id
+```
+
+**Query parameter:** Provides optional filtering, sorting, or pagination information.
+
+```http
+GET /api/users?role=developer&city=bangalore
+```
+
+Express:
+
+```javascript
+req.query.role
+req.query.city
+```
+
+**Request body:** Sends data to the server, commonly for POST, PUT, and PATCH.
+
+```json
+{
+  "name": "Charith"
+}
+```
+
+Express:
+
+```javascript
+req.body.name
+```
+
+| Feature | Path parameter | Query parameter | Request body |
+|---|---|---|---|
+| Typical use | Identify resource | Filter or configure request | Send structured input |
+| Example | `/users/101` | `/users?page=2` | `{"name":"Charith"}` |
+| Express property | `req.params` | `req.query` | `req.body` |
+
+## 8. REST API Design Principles
+
+Good API design makes endpoints predictable and easy to maintain.
+
+1. Use nouns for resource names: `/users`, not `/getUsers`.
+2. Use HTTP methods to describe actions.
+3. Keep naming consistent.
+4. Use appropriate HTTP status codes.
+5. Validate incoming data.
+6. Return predictable response structures.
+7. Use pagination for large collections.
+8. Version APIs when making breaking changes.
+9. Protect sensitive endpoints with authentication and authorization.
+10. Document request and response schemas.
+
+Good examples:
+
+```http
+GET    /api/products
+GET    /api/products/25
+POST   /api/products
+PATCH  /api/products/25
+DELETE /api/products/25
+```
+
+Avoid action-oriented endpoints when a resource-oriented operation is sufficient:
+
+```http
+GET /api/getAllProducts
+POST /api/createProduct
+```
+
+Some actions do not map naturally to CRUD. For those cases, a clearly documented action endpoint may be appropriate.
+
+## 9. What Is Node.js?
+
+**Node.js is an open-source JavaScript runtime environment** that allows JavaScript to execute outside the browser.
+
+It is commonly used to build:
+
+- REST APIs
+- Backend services
+- Real-time applications
+- Command-line tools
+- Microservices
+
+Node.js includes built-in modules such as:
+
+- `http`
+- `fs`
+- `path`
+- `os`
+- `events`
+
+Node.js can create an HTTP server without Express, but developers often use Express to simplify routing and request handling.
+
+## 10. What Is Express.js?
+
+**Express.js is a minimal and flexible web framework for Node.js.** It provides features for building web servers and APIs.
+
+Express simplifies:
+
+- Routing
+- Middleware
+- HTTP request handling
+- HTTP response handling
+- Error handling
+- Static file serving
+- Modular route organization
+
+### Why use Express.js?
+
+Without a framework, developers must implement more HTTP handling and routing logic themselves. Express provides a simpler interface and a middleware-based architecture.
+
+Express is not a replacement for Node.js. It runs on Node.js.
+
+## 11. Creating an Express.js Server
+
+### Step 1: Create a project
+
+```bash
+mkdir express-rest-api
+cd express-rest-api
+npm init -y
+```
+
+### Step 2: Install Express
+
+```bash
+npm install express
+```
+
+### Step 3: Create `server.js`
+
+```javascript
+const express = require("express");
+
+const app = express();
+const PORT = 5000;
+
+// Parse incoming JSON request bodies
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.status(200).send("Welcome to the Express API!");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+```
+
+### Step 4: Start the server
+
+```bash
+node server.js
+```
+
+Open:
+
+```text
+http://localhost:5000
+```
+
+Expected response:
+
+```text
+Welcome to the Express API!
+```
+
+### What does each line do?
+
+```javascript
+const express = require("express");
+```
+
+Imports the Express package using CommonJS.
+
+```javascript
+const app = express();
+```
+
+Creates an Express application.
+
+```javascript
+app.use(express.json());
+```
+
+Registers middleware that parses incoming JSON request bodies and makes the parsed data available through `req.body`.
+
+```javascript
+app.get("/", (req, res) => {});
+```
+
+Registers a GET route.
+
+```javascript
+app.listen(5000, () => {});
+```
+
+Starts the HTTP server on port 5000.
+
+## 12. Routing and Route Parameters
+
+Routing determines how an application responds to a request for a particular HTTP method and path.
+
+```javascript
+app.get("/users", (req, res) => {
+  res.send("Get users");
+});
+
+app.post("/users", (req, res) => {
+  res.send("Create user");
+});
+
+app.put("/users/:id", (req, res) => {
+  res.send(`Replace user ${req.params.id}`);
+});
+
+app.patch("/users/:id", (req, res) => {
+  res.send(`Update user ${req.params.id}`);
+});
+
+app.delete("/users/:id", (req, res) => {
+  res.send(`Delete user ${req.params.id}`);
+});
+```
+
+### Route parameters
+
+A route parameter is a named value captured from a URL path.
+
+```javascript
+app.get("/users/:id", (req, res) => {
+  res.json({
+    userId: req.params.id
+  });
+});
+```
+
+Request:
+
+```http
+GET /users/101
+```
+
+Response:
+
+```json
+{
+  "userId": "101"
+}
+```
+
+Note: URL parameters are strings by default. Convert and validate them when a number is expected.
+
+## 13. Request and Response Objects
+
+Express provides `req` and `res` objects to route handlers.
+
+### Request object (`req`)
+
+| Property | Purpose |
+|---|---|
+| `req.params` | Route parameters |
+| `req.query` | Query string parameters |
+| `req.body` | Parsed request body |
+| `req.headers` | Request headers |
+| `req.method` | HTTP method |
+| `req.path` | Request path |
+| `req.ip` | Remote address information, subject to proxy configuration |
+
+### Response object (`res`)
+
+| Method | Purpose |
+|---|---|
+| `res.send()` | Sends a response |
+| `res.json()` | Sends a JSON response |
+| `res.status()` | Sets the HTTP status code |
+| `res.sendStatus()` | Sets status and sends its text representation |
+| `res.redirect()` | Redirects the client |
+| `res.set()` | Sets response headers |
+| `res.end()` | Ends the response |
+
+Example:
+
+```javascript
+app.get("/profile/:id", (req, res) => {
+  const id = Number(req.params.id);
+
+  res.status(200).json({
+    message: "Profile fetched",
+    profileId: id
+  });
+});
+```
+
+## 14. Middleware
+
+**Middleware is a function that runs during the Express request-response lifecycle.**
+
+Middleware functions can:
+
+- Execute code.
+- Read and modify request and response objects.
+- End the request-response cycle.
+- Pass control to the next middleware using `next()`.
+
+### Middleware flow
+
+```mermaid
+flowchart TD
+    A[Client Request] --> B[Logger Middleware]
+    B --> C[Authentication Middleware]
+    C --> D[Validation Middleware]
+    D --> E[Route Handler]
+    E --> F[Response]
+    C -->|Error| G[Error Handler]
+    D -->|Error| G
+```
+
+### Example: Custom middleware
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+app.get("/", (req, res) => {
+  res.send("Hello World");
+});
+
+app.listen(5000);
+```
+
+`next()` passes control to the next matching middleware or route handler. If middleware neither sends a response nor calls `next()`, the request may remain pending.
+
+### Types of middleware
+
+1. **Application-level middleware:** Registered on the Express app using `app.use()` or `app.METHOD()`.
+2. **Router-level middleware:** Registered on an Express Router instance.
+3. **Built-in middleware:** Supplied by Express.
+4. **Third-party middleware:** Installed from npm.
+5. **Error-handling middleware:** Handles errors passed through the Express error flow.
+
+### Built-in middleware
+
+```javascript
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
+```
+
+| Middleware | Purpose |
+|---|---|
+| `express.json()` | Parses JSON request bodies |
+| `express.urlencoded()` | Parses URL-encoded form bodies |
+| `express.static()` | Serves static files |
+
+### Third-party middleware
+
+Examples include:
+
+```bash
+npm install cors morgan helmet
+```
+
+```javascript
+const cors = require("cors");
+const morgan = require("morgan");
+const helmet = require("helmet");
+
+app.use(cors());
+app.use(morgan("dev"));
+app.use(helmet());
+```
+
+Configure CORS with an appropriate origin allowlist in production rather than allowing every origin by default.
+
+## 15. Express Router
+
+Express Router allows routes to be grouped into separate modules.
+
+Create `routes/userRoutes.js`:
+
+```javascript
+const express = require("express");
+const router = express.Router();
+
+router.get("/", (req, res) => {
+  res.json({ message: "All users" });
+});
+
+router.post("/", (req, res) => {
+  res.status(201).json({ message: "User created" });
+});
+
+module.exports = router;
+```
+
+Use it in `server.js`:
+
+```javascript
+const express = require("express");
+const userRoutes = require("./routes/userRoutes");
+
+const app = express();
+
+app.use(express.json());
+app.use("/api/users", userRoutes);
+
+app.listen(5000);
+```
+
+The router endpoints are now:
+
+```http
+GET  /api/users
+POST /api/users
+```
+
+`app.use("/api/users", userRoutes)` mounts the router at the `/api/users` path.
+
+## 16. Controllers and Project Structure
+
+For maintainable applications, separate routes, controllers, services, and models.
+
+```text
+express-rest-api/
+│
+├── server.js
+├── package.json
+├── routes/
+│   └── userRoutes.js
+├── controllers/
+│   └── userController.js
+├── services/
+│   └── userService.js
+├── models/
+│   └── userModel.js
+├── middleware/
+│   ├── authMiddleware.js
+│   └── errorMiddleware.js
+└── config/
+    └── database.js
+```
+
+**Responsibilities:**
+
+| Layer | Responsibility |
+|---|---|
+| Routes | Maps URLs and HTTP methods to handlers |
+| Controllers | Handles HTTP input and output |
+| Services | Contains reusable business logic |
+| Models | Defines or accesses data structures |
+| Middleware | Handles cross-cutting request processing |
+| Config | Stores application configuration and setup |
+
+This is a common organization pattern, not a mandatory Express requirement.
+
+## 17. CRUD REST API Example
+
+The following example implements Create, Read, Update, and Delete using an in-memory array. Data resets when the server restarts. A real application should use a database.
+
+### Complete `server.js`
+
+```javascript
+const express = require("express");
+
+const app = express();
+const PORT = 5000;
+
+app.use(express.json());
+
+let users = [
+  { id: 1, name: "Charith", email: "charith@example.com" },
+  { id: 2, name: "Rahul", email: "rahul@example.com" }
+];
+
+// GET: Fetch all users
+app.get("/api/users", (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: users
+  });
+});
+
+// GET: Fetch one user
+app.get("/api/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID"
+    });
+  }
+
+  const user = users.find((item) => item.id === id);
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: user
+  });
+});
+
+// POST: Create a user
+app.post("/api/users", (req, res) => {
+  const { name, email } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({
+      success: false,
+      message: "Name and email are required"
+    });
+  }
+
+  const newUser = {
+    id: users.length
+      ? Math.max(...users.map((user) => user.id)) + 1
+      : 1,
+    name,
+    email
+  };
+
+  users.push(newUser);
+
+  res.status(201).json({
+    success: true,
+    message: "User created successfully",
+    data: newUser
+  });
+});
+
+// PUT: Replace a user's editable fields
+app.put("/api/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { name, email } = req.body;
+
+  if (!Number.isInteger(id) || !name || !email) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid ID, name, and email are required"
+    });
+  }
+
+  const index = users.findIndex((user) => user.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
+
+  users[index] = { id, name, email };
+
+  res.status(200).json({
+    success: true,
+    message: "User updated successfully",
+    data: users[index]
+  });
+});
+
+// PATCH: Partially update a user
+app.patch("/api/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const user = users.find((item) => item.id === id);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID"
+    });
+  }
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
+
+  const { name, email } = req.body;
+
+  if (name !== undefined) user.name = name;
+  if (email !== undefined) user.email = email;
+
+  res.status(200).json({
+    success: true,
+    message: "User updated successfully",
+    data: user
+  });
+});
+
+// DELETE: Remove a user
+app.delete("/api/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID"
+    });
+  }
+
+  const existingUser = users.find((user) => user.id === id);
+
+  if (!existingUser) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
+
+  users = users.filter((user) => user.id !== id);
+
+  res.status(200).json({
+    success: true,
+    message: "User deleted successfully"
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+```
+
+### Test with Postman
+
+| Operation | Method | URL |
+|---|---|---|
+| Get all users | GET | `http://localhost:5000/api/users` |
+| Get one user | GET | `http://localhost:5000/api/users/1` |
+| Create user | POST | `http://localhost:5000/api/users` |
+| Replace user | PUT | `http://localhost:5000/api/users/1` |
+| Update user | PATCH | `http://localhost:5000/api/users/1` |
+| Delete user | DELETE | `http://localhost:5000/api/users/1` |
+
+For POST and PUT, select **Body → raw → JSON** in Postman.
+
+Example:
+
+```json
+{
+  "name": "Charith",
+  "email": "charith@example.com"
+}
+```
+
+## 18. Calling APIs from React
+
+A frontend application can call an Express REST API using Axios or Fetch.
+
+Install Axios:
+
+```bash
+npm install axios
+```
+
+Example React component:
+
+```jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+function Users() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/users"
+        );
+
+        setUsers(response.data.data);
+      } catch (err) {
+        setError("Unable to fetch users");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
+
+  return (
+    <div>
+      <h2>User List</h2>
+      {users.map((user) => (
+        <p key={user.id}>{user.name} - {user.email}</p>
+      ))}
+    </div>
+  );
+}
+
+export default Users;
+```
+
+### Axios vs Fetch
+
+| Axios | Fetch |
+|---|---|
+| Third-party HTTP client | Browser-native API |
+| Automatically parses JSON with `response.data` | Requires calling `response.json()` |
+| Rejects on non-2xx HTTP responses by default | Does not reject just because the HTTP status is 4xx or 5xx |
+| Supports request/response interceptors | No built-in interceptor system |
+
+## 19. Error Handling
+
+Error handling helps an API return consistent and useful responses when something goes wrong.
+
+### Basic route error
+
+```javascript
+app.get("/example", (req, res) => {
+  try {
+    throw new Error("Something went wrong");
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+```
+
+### Centralized error-handling middleware
+
+Express error-handling middleware has four parameters: `err`, `req`, `res`, and `next`.
+
+```javascript
+function errorHandler(err, req, res, next) {
+  console.error(err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error"
+  });
+}
+
+app.use(errorHandler);
+```
+
+Register the error handler after routes and other middleware.
+
+In Express 5, rejected promises returned by route handlers are forwarded to error handling automatically. In Express 4, use `next(err)` or an async wrapper for rejected asynchronous handlers.
+
+Do not expose stack traces, secrets, or internal database details in production responses.
+
+## 20. Authentication and Authorization
+
+### Authentication
+
+Authentication verifies **who the user is**.
+
+Examples:
+
+- Username and password
+- JWT
+- OAuth 2.0
+- Session-based authentication
+
+### Authorization
+
+Authorization determines **what an authenticated user is allowed to do**.
+
+Example:
+
+- Admin can delete users.
+- Regular user can view their own profile.
+- Manager can view team records.
+
+### JWT authentication flow
+
+```mermaid
+sequenceDiagram
+    participant U as User / Client
+    participant A as Express API
+    participant D as Database
+
+    U->>A: POST /login with credentials
+    A->>D: Verify user
+    D-->>A: User record
+    A-->>U: Access token
+    U->>A: Request with Bearer token
+    A->>A: Verify token and permissions
+    A-->>U: Protected resource
+```
+
+Example authorization header:
+
+```http
+Authorization: Bearer <access-token>
+```
+
+A JWT is typically signed, not encrypted. Do not store passwords or other secrets in its payload. Use HTTPS and appropriate token expiry and storage practices.
+
+## 21. CORS, Validation, and Security
+
+### CORS
+
+CORS stands for **Cross-Origin Resource Sharing**. It is a browser security mechanism that controls whether frontend code from one origin can access resources from another origin.
+
+Example:
+
+- React frontend: `http://localhost:3000`
+- Express backend: `http://localhost:5000`
+
+Enable CORS:
+
+```bash
+npm install cors
+```
+
+```javascript
+const cors = require("cors");
+
+app.use(cors({
+  origin: "http://localhost:3000"
+}));
+```
+
+Configure the permitted origins, methods, and credentials deliberately for your application.
+
+### Input validation
+
+Never trust incoming client data. Validate request bodies, path parameters, and query parameters before using them.
+
+Example using a simple manual check:
+
+```javascript
+app.post("/api/users", (req, res) => {
+  const { name, email } = req.body;
+
+  if (typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({
+      message: "A valid name is required"
+    });
+  }
+
+  if (typeof email !== "string" || !email.includes("@")) {
+    return res.status(400).json({
+      message: "A valid email is required"
+    });
+  }
+
+  res.status(201).json({ message: "Input accepted" });
+});
+```
+
+For production applications, use a schema-validation library and robust email validation.
+
+### Security checklist
+
+- Use HTTPS.
+- Hash passwords using a suitable password-hashing algorithm such as Argon2id or bcrypt.
+- Validate and sanitize untrusted input.
+- Use authentication and authorization.
+- Store secrets in environment variables or a secrets manager.
+- Apply rate limiting to sensitive endpoints.
+- Configure CORS intentionally.
+- Use security headers, for example with Helmet.
+- Keep dependencies updated.
+- Avoid exposing stack traces or sensitive information.
+- Apply least-privilege access to databases and services.
+
+## 22. Pagination, Filtering, Sorting, and Versioning
+
+### Pagination
+
+Avoid returning thousands of records in a single response.
+
+Example:
+
+```http
+GET /api/users?page=2&limit=10
+```
+
+Express:
+
+```javascript
+app.get("/api/users", (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(req.query.limit) || 10)
+  );
+
+  const startIndex = (page - 1) * limit;
+  const results = users.slice(startIndex, startIndex + limit);
+
+  res.json({
+    page,
+    limit,
+    total: users.length,
+    data: results
+  });
+});
+```
+
+### Filtering
+
+```http
+GET /api/users?role=developer
+```
+
+### Sorting
+
+```http
+GET /api/users?sortBy=name&order=asc
+```
+
+Always allowlist supported sort fields and directions before using them in database queries.
+
+### API versioning
+
+Versioning helps evolve an API while maintaining compatibility for existing clients.
+
+```http
+/api/v1/users
+/api/v2/users
+```
+
+A version should be introduced when a change breaks compatibility, according to the API's versioning policy.
+
+## 23. REST vs SOAP vs GraphQL
+
+| REST | SOAP | GraphQL |
+|---|---|---|
+| Architectural style | Messaging protocol | API query language and runtime |
+| Commonly uses JSON | XML-based message format | Commonly uses JSON responses |
+| Often exposes multiple resource URLs | Uses defined operations and message structure | Often uses a single endpoint |
+| Uses HTTP methods and status codes | Can operate over different underlying protocols | Client specifies requested fields |
+| Flexible resource-oriented design | Formal standards and contracts | Flexible data selection |
+
+Each approach has suitable use cases. REST is widely used for conventional web APIs.
+
+## 24. Node.js vs Express.js vs React.js
+
+| Technology | Category | Main purpose |
+|---|---|---|
+| Node.js | JavaScript runtime | Executes JavaScript on the server |
+| Express.js | Backend web framework | Builds APIs and web servers on Node.js |
+| React.js | Frontend library | Builds user interfaces |
+
+Typical application:
+
+```text
+React.js
+   |
+   | Axios / Fetch
+   v
+Node.js + Express.js
+   |
+   v
+MongoDB / MySQL
+```
+
+## 25. Testing REST APIs
+
+Common tools:
+
+- **Postman:** Manually send and inspect API requests.
+- **Insomnia:** API development and testing.
+- **Jest:** JavaScript testing framework.
+- **Supertest:** HTTP-level testing of Node.js applications.
+- **Swagger / OpenAPI:** API documentation and contract definition.
+
+### Postman testing checklist
+
+For every endpoint, test:
+
+1. Successful request.
+2. Missing required fields.
+3. Invalid data types.
+4. Invalid resource ID.
+5. Resource not found.
+6. Missing or invalid authentication.
+7. Insufficient permissions.
+8. Unexpected server errors.
+
+## 26. Common Interview Questions
+
+### REST API questions
+
+**1. What is REST API?**
+
+REST API is an API designed according to REST architectural principles. It allows clients and servers to communicate over HTTP using resources, methods, and representations such as JSON.
+
+**2. What is the difference between PUT and PATCH?**
+
+PUT generally replaces the target resource representation, while PATCH applies a partial modification.
+
+**3. What is statelessness?**
+
+Each request contains the information required to process it. The server does not depend on client session state stored between independent requests.
+
+**4. What is idempotency?**
+
+Repeating an idempotent request has the same intended effect as performing it once. GET, PUT, and DELETE are defined as idempotent methods.
+
+**5. What is the difference between 401 and 403?**
+
+401 indicates missing or invalid authentication. 403 indicates the client does not have permission to access the resource.
+
+**6. What is API versioning?**
+
+API versioning allows an API to evolve while supporting existing clients, for example `/api/v1/users` and `/api/v2/users`.
+
+### Express.js questions
+
+**7. What is Express.js?**
+
+Express.js is a minimal and flexible web framework built on Node.js. It simplifies routing, middleware, request handling, and response handling.
+
+**8. What is middleware?**
+
+Middleware is a function that runs during the request-response lifecycle. It can execute code, modify request or response objects, end the response, or pass control using `next()`.
+
+**9. What is `next()`?**
+
+`next()` passes control to the next matching middleware or route handler. Passing an error to `next(err)` forwards it to error handling.
+
+**10. What is the difference between `app.use()` and `app.get()`?**
+
+`app.use()` registers middleware, optionally for a path prefix. `app.get()` registers a route handler for GET requests.
+
+**11. What is Express Router?**
+
+Express Router creates modular route handlers that can be mounted on an application using `app.use()`.
+
+**12. What is `express.json()`?**
+
+It is built-in Express middleware that parses incoming JSON request bodies and populates `req.body`.
+
+**13. What is CORS?**
+
+CORS is a browser mechanism that controls cross-origin access to resources. Express applications commonly configure it using the `cors` package.
+
+**14. How do you handle errors in Express?**
+
+Use centralized error-handling middleware with four parameters: `(err, req, res, next)`. Forward errors to it with `next(err)` when needed.
+
+**15. How do you connect Express to MongoDB?**
+
+A common approach is to use Mongoose or the official MongoDB Node.js driver, configure the database connection, and call database operations from the service or model layer.
+
+### More topics to prepare
+
+- `require()` vs `import`
+- `module.exports` vs `exports`
+- CommonJS vs ES Modules
+- Node.js event loop
+- Promises and async/await
+- Synchronous vs asynchronous operations
+- `req.params` vs `req.query` vs `req.body`
+- Authentication vs authorization
+- JWT and refresh tokens
+- MongoDB and Mongoose
+- SQL database integration
+- Environment variables
+- Rate limiting
+- API documentation
+- Microservices and monolithic architecture
+
+## 27. Quick Revision
+
+| Term | Remember |
+|---|---|
+| API | Interface for software communication |
+| REST | Architectural style for networked APIs |
+| HTTP | Protocol used for web communication |
+| GET | Read data |
+| POST | Create data or initiate an operation |
+| PUT | Replace a resource |
+| PATCH | Partially modify a resource |
+| DELETE | Delete a resource |
+| JSON | Common API data-exchange format |
+| Endpoint | API URL for accessing a resource |
+| Middleware | Function in the request-response lifecycle |
+| `req.params` | URL path parameters |
+| `req.query` | Query string parameters |
+| `req.body` | Parsed request body |
+| `res.json()` | Sends a JSON response |
+| `next()` | Passes control onward |
+| Router | Organizes application routes |
+| CORS | Browser cross-origin access mechanism |
+| JWT | Signed token format often used for authentication |
+| Node.js | JavaScript runtime |
+| Express.js | Web framework for Node.js |
+
+---
+
+## Learning Roadmap
+
+```mermaid
+flowchart TD
+    A[JavaScript Fundamentals] --> B[Node.js Fundamentals]
+    B --> C[HTTP and REST API Concepts]
+    C --> D[Express.js]
+    D --> E[Routing and Middleware]
+    E --> F[CRUD API Development]
+    F --> G[MongoDB / MySQL Integration]
+    G --> H[Authentication and Authorization]
+    H --> I[Validation and Error Handling]
+    I --> J[Testing and API Documentation]
+    J --> K[Build and Deploy a Backend Project]
+```
+
+### Suggested hands-on projects
+
+1. **User Management API:** Implement registration, login, profile retrieval, update, and deletion.
+2. **Task Management API:** Implement CRUD, filtering, pagination, and user authorization.
+3. **E-commerce API:** Implement products, categories, carts, and orders.
+4. **Payer Management API:** Build payer CRUD endpoints, validation, database integration, and role-based access control.
+
+### Useful official documentation
+
+- [REST architectural style — Roy Fielding's dissertation](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+- [MDN — HTTP request methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods)
+- [MDN — HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status)
+- [Node.js documentation](https://nodejs.org/docs/latest/api/)
+- [Express.js documentation](https://expressjs.com/)
+- [Express.js API reference](https://expressjs.com/en/5x/api.html)
+- [Axios documentation](https://axios-http.com/docs/intro)
+- [Postman documentation](https://learning.postman.com/)
+
+---
+
+**Learning objective:** Understand how REST APIs work, build REST endpoints using Node.js and Express.js, connect a database, handle authentication and errors, and integrate the backend with a React frontend.
+"""
