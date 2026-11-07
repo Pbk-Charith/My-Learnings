@@ -2193,4 +2193,234 @@ app.listen(3000, () => {
 - `app.all()` — handle all HTTP methods for a matching route.
 - `app.listen()` — start the server.
 ---
+## 30. Multiple Middleware Functions and Middleware Chaining in Express.js
+
+Middleware chaining is the process of executing multiple middleware functions in sequence during the Express request-response lifecycle.
+
+Your example registers four middleware functions on the `/login` path using one `app.use()` call.
+
+### 30.1 Example
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use("/login",
+    (req, res, next) => {
+        console.log("Login route accessed");
+        // res.send("Hello Logins 1");
+        next();
+    },
+    (req, res, next) => {
+        console.log("Login route accessed again1");
+        // res.send("Hello Logins 2");
+        next();
+    },
+    (req, res, next) => {
+        console.log("Login route accessed again2");
+        // res.send("Hello Logins 3");
+        next();
+    },
+    (req, res, next) => {
+        console.log("Login route accessed again3");
+        // res.send("Hello Logins 4");
+        // No next() and no response
+    }
+);
+
+app.listen(3000, () => {
+    console.log("Server is running on port 3000...");
+});
+```
+
+### 30.2 How does it work?
+
+When a client requests:
+
+```http
+GET /login
+```
+
+Express runs the matching middleware functions in the order in which they were registered.
+
+1. Middleware 1 logs `Login route accessed` and calls `next()`.
+2. Middleware 2 logs `Login route accessed again1` and calls `next()`.
+3. Middleware 3 logs `Login route accessed again2` and calls `next()`.
+4. Middleware 4 logs `Login route accessed again3` but does not call `next()` or send a response.
+
+### 30.3 Execution flow
+
+```mermaid
+flowchart TD
+    A[Client requests /login] --> B[Middleware 1]
+    B --> C[console.log: Login route accessed]
+    C --> D[next]
+    D --> E[Middleware 2]
+    E --> F[console.log: Login route accessed again1]
+    F --> G[next]
+    G --> H[Middleware 3]
+    H --> I[console.log: Login route accessed again2]
+    I --> J[next]
+    J --> K[Middleware 4]
+    K --> L[console.log: Login route accessed again3]
+    L --> M[No next and no response]
+    M --> N[Request remains pending]
+```
+
+### 30.4 Terminal output
+
+```text
+Login route accessed
+Login route accessed again1
+Login route accessed again2
+Login route accessed again3
+```
+
+The messages appear in order because each middleware calls `next()` to pass control to the next middleware.
+
+### 30.5 Why does the browser keep loading?
+
+The fourth middleware neither sends a response nor passes control to another handler.
+
+For example, it does not call:
+
+```javascript
+res.send("Login successful");
+```
+
+It also does not call:
+
+```javascript
+next();
+```
+
+Therefore, the request-response cycle is unfinished and the client waits for a response. This is normally a hanging HTTP request, not an Express server crash.
+
+### 30.6 What happens if we call `next()` in the fourth middleware?
+
+Suppose the last middleware is changed to:
+
+```javascript
+(req, res, next) => {
+    console.log("Login route accessed again3");
+    next();
+}
+```
+
+All four middleware functions now pass control onward. However, if there is no later matching handler that sends a response, Express reaches the end of the middleware stack and normally responds with `404 Not Found`.
+
+**Important:** `next()` does not itself send a response. It only passes control to the next matching middleware or route handler.
+
+### 30.7 Correct approach: send a response in the final middleware
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.use("/login",
+    (req, res, next) => {
+        console.log("Login route accessed");
+        next();
+    },
+    (req, res, next) => {
+        console.log("Login route accessed again1");
+        next();
+    },
+    (req, res, next) => {
+        console.log("Login route accessed again2");
+        next();
+    },
+    (req, res) => {
+        console.log("Login route accessed again3");
+        res.send("Login successful!");
+    }
+);
+
+app.listen(3000, () => {
+    console.log("Server is running on port 3000...");
+});
+```
+
+Now the browser receives:
+
+```text
+Login successful!
+```
+
+The final middleware sends the response, so the request-response cycle completes.
+
+### 30.8 Difference between `next()` and `res.send()`
+
+| `next()` | `res.send()` |
+|---|---|
+| Passes control to the next matching middleware or handler | Sends a response to the client |
+| Does not finish the response by itself | Ends the response |
+| Used to continue the middleware chain | Used when the server has a result to return |
+| Can lead to a 404 if no later handler responds | Completes the request-response cycle |
+
+### 30.9 Practical example: login middleware pipeline
+
+In a real application, middleware can separate different responsibilities:
+
+```mermaid
+flowchart TD
+    A[POST /login] --> B[Request logger]
+    B --> C[Validate request body]
+    C --> D[Find user]
+    D --> E[Verify password]
+    E --> F[Create access token]
+    F --> G[Send login response]
+    C -->|Invalid input| H[400 response]
+    D -->|User not found| I[401 response]
+    E -->|Invalid password| I
+```
+
+A production implementation should use secure password hashing, safe error responses, rate limiting, and appropriate token handling.
+
+### 30.10 Important interview questions
+
+**Q1. What is middleware chaining in Express.js?**
+
+Middleware chaining is the sequential execution of multiple middleware functions. Each middleware can process the request, send a response, or call `next()` to pass control onward.
+
+**Q2. What happens if we do not call `next()`?**
+
+If middleware does not call `next()` and does not send a response, the request remains pending.
+
+**Q3. Does `next()` send a response to the client?**
+
+No. `next()` passes control to the next matching middleware or route handler. A handler must eventually send a response or otherwise complete the request.
+
+**Q4. What happens when every middleware calls `next()` but no route sends a response?**
+
+Express reaches the end of the matching middleware stack. If no response has been sent, Express normally returns a 404 response.
+
+**Q5. Can we pass an error using `next()`?**
+
+Yes. Calling `next(error)` forwards the error to Express error-handling middleware.
+
+```javascript
+app.use((req, res, next) => {
+    const error = new Error("Something went wrong");
+    next(error);
+});
+
+// Error-handling middleware
+app.use((err, req, res, next) => {
+    res.status(500).json({
+        message: err.message
+    });
+});
+```
+
+### 30.11 Key takeaways
+
+- Express executes matching middleware in registration order.
+- `next()` passes control to the next matching handler.
+- `res.send()` and `res.json()` send a response and finish the response cycle.
+- Middleware that neither responds nor calls `next()` leaves the request pending.
+- Calling `next()` after the last matching middleware does not automatically create a successful response; an unmatched request normally ends in a 404.
+- Use `next(error)` to forward errors to error-handling middleware.
+"""
+---
 [⬆️ Back to Table of Contents](#-table-of-contents)
