@@ -113,6 +113,19 @@
   - [29.12 Important: route matching and registration order](#2912-important-route-matching-and-registration-order)
   - [29.13 Complete example](#2913-complete-example)
   - [29.14 Interview question](#2914-interview-question)
+- [30. Multiple Middleware Functions and Middleware Chaining in Express.js](#30-multiple-middleware-functions-and-middleware-chaining-in-expressjs)
+  - [30.1 Example](#301-example)
+  - [30.2 How does it work?](#302-how-does-it-work)
+  - [30.3 Execution flow](#303-execution-flow)
+  - [30.4 Terminal output](#304-terminal-output)
+  - [30.5 Why does the browser keep loading?](#305-why-does-the-browser-keep-loading)
+  - [30.6 What happens if we call `next()` in the fourth middleware?](#306-what-happens-if-we-call-next-in-the-fourth-middleware)
+  - [30.7 Correct approach: send a response in the final middleware](#307-correct-approach-send-a-response-in-the-final-middleware)
+  - [30.8 Difference between `next()` and `res.send()`](#308-difference-between-next-and-ressend)
+  - [30.9 Practical example: login middleware pipeline](#309-practical-example-login-middleware-pipeline)
+  - [30.10 Important interview questions](#3010-important-interview-questions)
+  - [30.11 Key takeaways](#3011-key-takeaways)
+- ["""](#)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 ---
