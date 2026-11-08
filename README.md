@@ -125,7 +125,14 @@
   - [30.9 Practical example: login middleware pipeline](#309-practical-example-login-middleware-pipeline)
   - [30.10 Important interview questions](#3010-important-interview-questions)
   - [30.11 Key takeaways](#3011-key-takeaways)
-- ["""](#)
+- [31. Difference Between `app.use()` and `app.all()` in Express.js](#31-difference-between-appuse-and-appall-in-expressjs)
+  - [31.1 `app.use()`](#311-appuse)
+  - [31.2 `app.all()`](#312-appall)
+  - [31.3 Main differences](#313-main-differences)
+  - [31.4 Using `app.use()` and `app.all()` together](#314-using-appuse-and-appall-together)
+  - [31.5 When should you use each one?](#315-when-should-you-use-each-one)
+  - [31.6 Interview-ready answer](#316-interview-ready-answer)
+  - [31.7 Quick revision](#317-quick-revision)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 ---
