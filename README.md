@@ -2434,6 +2434,126 @@ app.use((err, req, res, next) => {
 - Middleware that neither responds nor calls `next()` leaves the request pending.
 - Calling `next()` after the last matching middleware does not automatically create a successful response; an unmatched request normally ends in a 404.
 - Use `next(error)` to forward errors to error-handling middleware.
-"""
+---
+
+## 31. Difference Between `app.use()` and `app.all()` in Express.js
+
+Both `app.use()` and `app.all()` can run for different HTTP methods, but they have different purposes and path-matching behavior.
+
+### 31.1 `app.use()`
+
+`app.use()` registers middleware that runs during the request-response cycle.
+
+**Key points:**
+- It is not restricted to a specific HTTP method.
+- It generally uses path-prefix matching.
+- It is commonly used for logging, authentication, validation, and shared request processing.
+- Call `next()` to pass control to the next middleware or route handler.
+- If it sends a response without calling `next()`, the request is finished.
+
+```js
+app.use("/user", (req, res, next) => {
+    console.log("User middleware executed");
+    next();
+});
+```
+
+This middleware can run for requests such as `GET /user`, `POST /user`, `GET /user/123`, and `DELETE /user/123`, because `/user` is a middleware mount-path prefix.
+
+### 31.2 `app.all()`
+
+`app.all()` registers a route handler that matches all HTTP methods for the specified route path.
+
+**Key points:**
+- It can handle GET, POST, PUT, PATCH, DELETE, and other HTTP methods.
+- It uses Express route-path matching, not middleware mount-prefix matching.
+- It is useful when the same route behavior should apply to every HTTP method.
+- Call `next()` if execution should continue to another matching handler.
+
+```js
+app.all("/user", (req, res) => {
+    res.send(`Request received using ${req.method}`);
+});
+```
+
+This handler matches `/user` for different HTTP methods, but it does not automatically match `/user/123`.
+
+### 31.3 Main differences
+
+| Feature | `app.use()` | `app.all()` |
+|---|---|---|
+| Purpose | Registers middleware | Registers a route handler for all HTTP methods |
+| HTTP methods | Not restricted to one method | Matches all HTTP methods |
+| Path matching | Generally prefix-based | Express route-path matching |
+| Typical use | Logging, authentication, validation | Shared handling for one route across methods |
+| `next()` | Commonly used to continue middleware execution | Can continue to later matching handlers |
+| Example | `app.use("/user", middleware)` | `app.all("/user", handler)` |
+
+### 31.4 Using `app.use()` and `app.all()` together
+
+```js
+const express = require("express");
+const app = express();
+
+app.use("/user", (req, res, next) => {
+    console.log("User middleware executed");
+    next();
+});
+
+app.all("/user", (req, res) => {
+    res.send(`Handled ${req.method} request for /user`);
+});
+
+app.get("/user/:id", (req, res) => {
+    res.send(`User ID: ${req.params.id}`);
+});
+
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
+
+**Request flow:**
+
+| Request | What happens |
+|---|---|
+| `GET /user` | `app.use()` runs, then `app.all()` sends the response |
+| `POST /user` | `app.use()` runs, then `app.all()` sends the response |
+| `GET /user/123` | `app.use()` runs, then `app.get("/user/:id")` sends the response |
+| `DELETE /user/123` | `app.use()` runs; if no matching route exists, Express reaches the 404 handling stage |
+
+Express processes matching middleware and routes in registration order. A handler that sends a response ends the request unless it explicitly passes control onward.
+
+### 31.5 When should you use each one?
+
+Use `app.use()` when shared middleware should run for requests under a path:
+
+```js
+app.use("/api", authenticateUser);
+```
+
+Use `app.all()` when one route handler should respond to every HTTP method on the same route:
+
+```js
+app.all("/maintenance", (req, res) => {
+    res.status(503).send("Service temporarily unavailable");
+});
+```
+
+### 31.6 Interview-ready answer
+
+**Question: What is the difference between `app.use()` and `app.all()` in Express.js?**
+
+**Answer:** `app.use()` registers middleware. It generally matches a path prefix and can run for requests using different HTTP methods. It is commonly used for logging, authentication, validation, and shared processing. `app.all()` registers a route handler that matches all HTTP methods for a specified route path. In short, `app.use()` is primarily for middleware, while `app.all()` is for handling all methods on a route.
+
+### 31.7 Quick revision
+
+- `app.use()` = middleware + generally prefix-based path matching.
+- `app.all()` = route handler + all HTTP methods for a matching route.
+- `app.use("/user", ...)` can also run for `/user/123`.
+- `app.all("/user", ...)` does not automatically match `/user/123`.
+- Registration order matters in Express.
+- Use `next()` to continue; use `res.send()` or another response method to finish the request.
+
 ---
 [⬆️ Back to Table of Contents](#-table-of-contents)
