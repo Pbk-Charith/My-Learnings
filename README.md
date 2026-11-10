@@ -2563,4 +2563,1319 @@ app.all("/maintenance", (req, res) => {
 - Use `next()` to continue; use `res.send()` or another response method to finish the request.
 
 ---
+## 1. What is an API?
+
+API stands for **Application Programming Interface**.
+
+An API is a set of rules that allows two software applications to communicate with each other.
+
+For example, imagine you are using a weather application:
+
+1. You open the weather application.
+2. The application sends a request to a weather service API.
+3. The API obtains the requested weather information.
+4. The API sends a response.
+5. The application displays the weather information.
+
+The frontend does not need to know how the weather service stores or calculates its data. It communicates through the API contract.
+
+## 2. What is REST?
+
+REST stands for **Representational State Transfer**.
+
+REST is an architectural style for designing networked applications. It describes constraints that help services communicate through a consistent interface.
+
+REST is not a programming language, library, framework, or protocol. It is an architectural style commonly implemented using HTTP.
+
+## 3. What is a REST API?
+
+A **REST API** is an API designed around REST principles. It commonly uses HTTP methods to perform operations on resources.
+
+A resource is an item or collection of items that an application manages.
+
+Examples of resources:
+
+- Users
+- Products
+- Orders
+- Payments
+- Employees
+- Posts
+
+A REST API usually identifies resources through URLs.
+
+Example:
+
+```text
+https://api.example.com/users
+https://api.example.com/users/101
+https://api.example.com/products
+https://api.example.com/orders/5001
+```
+
+Typical operations on a user resource:
+
+| Operation | HTTP method | Endpoint |
+|---|---|---|
+| Get all users | GET | `/users` |
+| Get one user | GET | `/users/101` |
+| Create a user | POST | `/users` |
+| Replace a user | PUT | `/users/101` |
+| Partially update a user | PATCH | `/users/101` |
+| Delete a user | DELETE | `/users/101` |
+
+A useful design principle is to use nouns for resource paths (`/users`) and HTTP methods to express the action.
+
+## 4. How a REST API works
+
+A typical frontend-to-backend request flow:
+
+```text
++---------------------+
+| Frontend            |
+| React application   |
++---------------------+
+          |
+          | HTTP request
+          | GET /users/101
+          v
++---------------------+
+| Backend API         |
+| Node.js + Express   |
++---------------------+
+          |
+          | Validate request
+          | Run business logic
+          v
++---------------------+
+| Database            |
+| MongoDB             |
++---------------------+
+          |
+          | Return data
+          v
++---------------------+
+| Backend API         |
+| Builds HTTP response|
++---------------------+
+          |
+          | JSON response
+          v
++---------------------+
+| Frontend            |
+| Displays the result |
++---------------------+
+```
+
+Example request:
+
+```http
+GET /users/101 HTTP/1.1
+Host: api.example.com
+Accept: application/json
+Authorization: Bearer <token>
+```
+
+Example response:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+```
+
+```json
+{
+  "id": 101,
+  "firstName": "Charith",
+  "email": "charith@example.com"
+}
+```
+
+The frontend sends an HTTP request. The backend processes it, may communicate with a database, and returns an HTTP response.
+
+## 5. REST principles and constraints
+
+REST is based on six architectural constraints.
+
+### 5.1 Client-server
+
+The client and server have separate responsibilities.
+
+- Client: user interface and user interaction.
+- Server: business logic, data processing and persistence.
+
+For example, React can be the client and Express can be the server.
+
+### 5.2 Stateless
+
+Each request must contain the information needed to process it. The server should not depend on hidden client session state retained from a previous request.
+
+For example, an authenticated request may include a bearer token:
+
+```http
+GET /profile
+Authorization: Bearer <access-token>
+```
+
+The server validates the token for that request.
+
+Stateless does not mean the application cannot store data in a database. It means each request is independently understandable by the server.
+
+### 5.3 Cacheable
+
+Responses should indicate whether they can be cached.
+
+For example, public product information may be cacheable, while sensitive account information generally should not be cached by shared caches.
+
+HTTP headers such as `Cache-Control` help define caching behavior.
+
+### 5.4 Uniform interface
+
+Clients interact with resources through a consistent interface.
+
+Common practices include:
+- Resource-oriented URLs.
+- Standard HTTP methods.
+- Standard HTTP status codes.
+- Consistent request and response representations.
+
+### 5.5 Layered system
+
+A client does not need to know whether it is communicating directly with the application server or through intermediaries such as proxies, gateways, or load balancers.
+
+### 5.6 Code on demand (optional)
+
+A server may optionally send executable code to a client, such as JavaScript. This constraint is optional in REST.
+
+## 6. HTTP request structure
+
+An HTTP request can contain these parts:
+
+| Part | Purpose | Example |
+|---|---|---|
+| Method | Operation to perform | `GET` |
+| URL/path | Resource being accessed | `/users/101` |
+| Headers | Metadata and credentials | `Authorization` |
+| Query parameters | Filtering, sorting, pagination | `?page=2` |
+| Path parameters | Identify a resource in the path | `/users/101` |
+| Body | Data sent to the server | JSON user data |
+
+Example:
+
+```http
+POST /users?sendWelcomeEmail=true HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "firstName": "Charith",
+  "email": "charith@example.com"
+}
+```
+
+- Method: `POST`
+- Path: `/users`
+- Query parameter: `sendWelcomeEmail=true`
+- Headers: `Content-Type`, `Authorization`
+- Body: JSON object containing the new user details
+
+## 7. HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS
+
+HTTP methods tell the server what operation the client wants to perform.
+
+For the examples below, assume the API manages users.
+
+### 7.1 GET – Retrieve data
+
+**Purpose:** Read or retrieve a resource. GET should not change the resource's state.
+
+Get all users:
+
+```http
+GET /users
+```
+
+Get one user:
+
+```http
+GET /users/101
+```
+
+Express example:
+
+```javascript
+app.get("/users", async (req, res) => {
+    try {
+        const users = await User.find();
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch users" });
+    }
+});
+
+app.get("/users/:id", async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(400).json({ message: "Invalid user ID" });
+    }
+});
+```
+
+Typical successful status: `200 OK`.
+
+### 7.2 POST – Create a resource
+
+**Purpose:** Submit data to create a new resource or trigger a server-side operation.
+
+Request:
+
+```http
+POST /users
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Perera",
+  "email": "charith@example.com"
+}
+```
+
+Express example:
+
+```javascript
+app.use(express.json());
+
+app.post("/users", async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+
+        res.status(201).json({
+            message: "User created successfully",
+            user
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Email already exists"
+            });
+        }
+
+        res.status(400).json({ message: error.message });
+    }
+});
+```
+
+Typical successful status: `201 Created`.
+
+POST is generally not idempotent: repeating the same create request may create multiple resources unless the API implements duplicate protection or an idempotency mechanism.
+
+### 7.3 PUT – Replace a resource
+
+**Purpose:** Create or replace the target resource's representation, depending on the API's design and whether the resource exists.
+
+Suppose the existing user is:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Perera",
+  "age": 25
+}
+```
+
+Request:
+
+```http
+PUT /users/101
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "firstName": "Sai",
+  "lastName": "Charith",
+  "age": 26
+}
+```
+
+Express example using Mongoose:
+
+```javascript
+app.put("/users/:id", async (req, res) => {
+    try {
+        const updatedUser = await User.findOneAndReplace(
+            { _id: req.params.id },
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "User replaced successfully",
+            user: updatedUser
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+```
+
+**Important:** PUT is intended for replacement, not a partial update. Fields omitted from the replacement representation may be removed or reset according to the API and database behavior. Ensure required fields and immutable fields are handled appropriately.
+
+Typical successful status: `200 OK` or `204 No Content`.
+
+### 7.4 PATCH – Partially update a resource
+
+**Purpose:** Update only the fields supplied by the client.
+
+Suppose the existing user is:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Perera",
+  "age": 25
+}
+```
+
+Request:
+
+```http
+PATCH /users/101
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "lastName": "Puttabakula"
+}
+```
+
+After the update:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Puttabakula",
+  "age": 25
+}
+```
+
+Express example:
+
+```javascript
+app.patch("/users/:id", async (req, res) => {
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "User updated successfully",
+            user: updatedUser
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+```
+
+Typical successful status: `200 OK` or `204 No Content`.
+
+This example is suitable for a simple learning API. In production, validate and allowlist update fields so clients cannot change protected fields such as roles or account status.
+
+### 7.5 DELETE – Delete a resource
+
+**Purpose:** Remove a resource.
+
+Request:
+
+```http
+DELETE /users/101
+```
+
+Express example:
+
+```javascript
+app.delete("/users/:id", async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+        if (!deletedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            message: "User deleted successfully"
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Invalid user ID" });
+    }
+});
+```
+
+Typical successful statuses:
+- `200 OK` when returning a response body.
+- `204 No Content` when the operation succeeds and no response body is returned.
+
+### 7.6 HEAD – Retrieve response headers only
+
+**Purpose:** Similar to GET, but the server returns headers without the response body.
+
+Request:
+
+```http
+HEAD /users/101
+```
+
+Use cases include checking whether a resource exists or inspecting metadata such as content length and last-modified time.
+
+Express example:
+
+```javascript
+app.head("/health", (req, res) => {
+    res.status(200).end();
+});
+```
+
+### 7.7 OPTIONS – Discover communication options
+
+**Purpose:** Ask the server which communication options are available for a resource. It is also commonly used by browsers for CORS preflight requests.
+
+Request:
+
+```http
+OPTIONS /users
+```
+
+Express example:
+
+```javascript
+app.options("/users", (req, res) => {
+    res.set("Allow", "GET, POST, OPTIONS");
+    res.sendStatus(204);
+});
+```
+
+CORS preflight handling is commonly configured using Express middleware such as the `cors` package.
+
+## 8. HTTP status codes
+
+A status code tells the client the result of its request.
+
+### 2xx – Success
+
+| Code | Meaning | Example |
+|---|---|---|
+| 200 | OK | User fetched or updated |
+| 201 | Created | User registered |
+| 202 | Accepted | Background task accepted |
+| 204 | No Content | Successfully deleted without response body |
+
+### 3xx – Redirection
+
+| Code | Meaning |
+|---|---|
+| 301 | Moved Permanently |
+| 302 | Found (temporary redirect) |
+| 304 | Not Modified |
+
+### 4xx – Client errors
+
+| Code | Meaning | Example |
+|---|---|---|
+| 400 | Bad Request | Invalid request data |
+| 401 | Unauthorized | Missing or invalid authentication |
+| 403 | Forbidden | Authenticated user lacks permission |
+| 404 | Not Found | User does not exist |
+| 405 | Method Not Allowed | HTTP method not supported for the resource |
+| 409 | Conflict | Duplicate email |
+| 422 | Unprocessable Content | Request is syntactically valid but fails validation |
+| 429 | Too Many Requests | Rate limit exceeded |
+
+### 5xx – Server errors
+
+| Code | Meaning |
+|---|---|
+| 500 | Internal Server Error |
+| 502 | Bad Gateway |
+| 503 | Service Unavailable |
+| 504 | Gateway Timeout |
+
+Do not return `200 OK` for every outcome. Choose a status code that accurately represents the result.
+
+## 9. Path parameters, query parameters and request body
+
+These are three common ways to pass information to an API.
+
+### 9.1 Path parameters – `req.params`
+
+Used to identify a particular resource.
+
+URL:
+
+```text
+GET /users/101
+```
+
+Express:
+
+```javascript
+app.get("/users/:id", (req, res) => {
+    console.log(req.params.id); // "101"
+    res.send("User ID received");
+});
+```
+
+### 9.2 Query parameters – `req.query`
+
+Used for filtering, searching, sorting and pagination.
+
+URL:
+
+```text
+GET /users?firstName=Charith&page=2&limit=10
+```
+
+Express:
+
+```javascript
+app.get("/users", (req, res) => {
+    const { firstName, page, limit } = req.query;
+
+    res.json({ firstName, page, limit });
+});
+```
+
+Query parameter values are generally received as strings and should be validated and converted when needed.
+
+### 9.3 Request body – `req.body`
+
+Used to send data, commonly with POST, PUT and PATCH.
+
+Request:
+
+```http
+POST /users
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "firstName": "Charith",
+  "age": 25
+}
+```
+
+Express:
+
+```javascript
+app.use(express.json());
+
+app.post("/users", (req, res) => {
+    console.log(req.body.firstName);
+    console.log(req.body.age);
+
+    res.send("Request received");
+});
+```
+
+### Comparison
+
+| Feature | `req.params` | `req.query` | `req.body` |
+|---|---|---|---|
+| Source | URL path | URL query string | Request body |
+| Example | `/users/101` | `/users?page=2` | JSON payload |
+| Access | `req.params.id` | `req.query.page` | `req.body.firstName` |
+| Common use | Identify resource | Filter/search/page | Create/update data |
+
+## 10. Complete CRUD REST API using Express and MongoDB
+
+The following example demonstrates a basic user API. It assumes you already have a Mongoose `User` model.
+
+### Project structure
+
+```text
+project/
+├── src/
+│   ├── models/
+│   │   └── user.js
+│   ├── config/
+│   │   └── database.js
+│   └── app.js
+├── .env
+├── .gitignore
+└── package.json
+```
+
+### Install dependencies
+
+```bash
+npm init -y
+npm install express mongoose dotenv
+npm install --save-dev nodemon
+```
+
+### Example user model – `src/models/user.js`
+
+```javascript
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        trim: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    age: {
+        type: Number,
+        min: 0
+    }
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model("User", userSchema);
+```
+
+A unique index on email prevents duplicate email values at the database level. Handle MongoDB duplicate-key error `11000` in the API.
+
+### Environment file – `.env`
+
+```env
+PORT=3000
+MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@YOUR_CLUSTER.mongodb.net/DevTinder
+```
+
+Use your actual Atlas connection details. Keep `.env` out of source control.
+
+### Express application – `src/app.js`
+
+```javascript
+require("dotenv").config();
+
+const express = require("express");
+const mongoose = require("mongoose");
+const User = require("./models/user");
+
+const app = express();
+
+app.use(express.json());
+
+// GET: Fetch all users
+app.get("/users", async (req, res) => {
+    try {
+        const users = await User.find();
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch users" });
+    }
+});
+
+// GET: Fetch one user by ID
+app.get("/users/:id", async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch user" });
+    }
+});
+
+// POST: Create a user
+app.post("/users", async (req, res) => {
+    try {
+        const user = await User.create(req.body);
+        res.status(201).json(user);
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Email already exists" });
+        }
+
+        if (error.name === "ValidationError") {
+            return res.status(400).json({ message: error.message });
+        }
+
+        res.status(500).json({ message: "Failed to create user" });
+    }
+});
+
+// PUT: Replace a user
+app.put("/users/:id", async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        const replacement = {
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            email: req.body.email,
+            age: req.body.age
+        };
+
+        const user = await User.findOneAndReplace(
+            { _id: req.params.id },
+            replacement,
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Email already exists" });
+        }
+
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// PATCH: Partially update a user
+app.patch("/users/:id", async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        const allowedFields = ["firstName", "lastName", "email", "age"];
+        const updates = {};
+
+        for (const field of allowedFields) {
+            if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+                updates[field] = req.body[field];
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ message: "No valid fields supplied" });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: updates },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Email already exists" });
+        }
+
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// DELETE: Delete a user
+app.delete("/users/:id", async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        const user = await User.findByIdAndDelete(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to delete user" });
+    }
+});
+
+// Start the server only after MongoDB connects
+const startServer = async () => {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log("Connected to MongoDB successfully");
+
+        const PORT = process.env.PORT || 3000;
+
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Application startup failed:", error.message);
+        process.exitCode = 1;
+    }
+};
+
+startServer();
+```
+
+**Important notes about this learning example:**
+
+- Validate request bodies with a schema validation library or explicit validation before writing to the database.
+- Never store plaintext passwords. Hash passwords with a password-hashing algorithm such as bcrypt or Argon2.
+- Do not allow clients to update protected fields such as roles, permissions, or internal account flags.
+- `unique: true` creates or declares a MongoDB index; it is not a Mongoose validator. Handle duplicate-key errors.
+- For production applications, separate routes, controllers, services, models, and middleware into different modules.
+
+### Test the API in Postman
+
+Start your server:
+
+```bash
+node src/app.js
+```
+
+Use these requests:
+
+| Method | URL | Body |
+|---|---|---|
+| GET | `http://localhost:3000/users` | None |
+| GET | `http://localhost:3000/users/USER_ID` | None |
+| POST | `http://localhost:3000/users` | User JSON |
+| PUT | `http://localhost:3000/users/USER_ID` | Complete replacement JSON |
+| PATCH | `http://localhost:3000/users/USER_ID` | Only fields to change |
+| DELETE | `http://localhost:3000/users/USER_ID` | None |
+
+Example POST body:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Perera",
+  "email": "charith@example.com",
+  "age": 25
+}
+```
+
+Example PATCH body:
+
+```json
+{
+  "lastName": "Puttabakula"
+}
+```
+
+For GET and DELETE requests, the ID belongs in the URL. You normally do not need a request body.
+
+## 11. PUT vs PATCH
+
+This is one of the most frequently asked REST API interview questions.
+
+| Feature | PUT | PATCH |
+|---|---|---|
+| Purpose | Replace the target resource representation | Partially modify a resource |
+| Typical request body | Complete representation | Only fields to change |
+| Omitted fields | May be removed or reset | Usually remain unchanged |
+| Idempotent by HTTP semantics | Yes | Not guaranteed; depends on the patch operation |
+| Example | Replace user details | Change only last name |
+
+Existing resource:
+
+```json
+{
+  "firstName": "Charith",
+  "lastName": "Perera",
+  "age": 25
+}
+```
+
+PUT body:
+
+```json
+{
+  "firstName": "Sai",
+  "lastName": "Charith",
+  "age": 26
+}
+```
+
+PATCH body:
+
+```json
+{
+  "lastName": "Puttabakula"
+}
+```
+
+After PATCH, the first name and age remain unchanged.
+
+## 12. Safe and idempotent methods
+
+These are important HTTP concepts.
+
+### Safe methods
+
+A safe method is intended to retrieve information without requesting a change to the server's resource state.
+
+- GET: Safe.
+- HEAD: Safe.
+- OPTIONS: Safe.
+
+Safe does not mean that absolutely no server-side logging or incidental processing can happen. It means the requested operation itself is read-only.
+
+### Idempotent methods
+
+A method is idempotent when making the same request multiple times has the same intended effect on server state as making it once.
+
+| Method | Safe? | Idempotent? |
+|---|---|---|
+| GET | Yes | Yes |
+| HEAD | Yes | Yes |
+| OPTIONS | Yes | Yes |
+| POST | No | Not generally |
+| PUT | No | Yes |
+| PATCH | No | Not guaranteed |
+| DELETE | No | Yes |
+
+Example of idempotent PUT:
+
+```http
+PUT /users/101
+```
+
+Sending the same replacement representation repeatedly should leave the resource in the same intended state.
+
+Example of DELETE:
+
+```http
+DELETE /users/101
+```
+
+The first request deletes the user. Repeating the request should still leave the user deleted, even if the later response is `404 Not Found`.
+
+Idempotency describes the intended effect on server state, not necessarily identical response status codes or response bodies.
+
+## 13. REST API best practices
+
+### 13.1 Use resource-oriented URLs
+
+Prefer:
+
+```text
+GET /users
+GET /users/101
+POST /users
+PATCH /users/101
+DELETE /users/101
+```
+
+Avoid action-heavy URLs where the HTTP method already expresses the action:
+
+```text
+GET /getAllUsers
+POST /createUser
+POST /deleteUser
+```
+
+Some action-oriented endpoints are appropriate for operations that are not naturally CRUD resource operations, but use resource-oriented paths where practical.
+
+### 13.2 Use appropriate status codes
+
+- `200` – successful request.
+- `201` – resource created.
+- `204` – successful request with no response body.
+- `400` – invalid request.
+- `401` – authentication required or failed.
+- `403` – insufficient permission.
+- `404` – resource not found.
+- `409` – conflict.
+- `500` – unexpected server error.
+
+### 13.3 Use JSON consistently
+
+A common response format:
+
+```json
+{
+  "success": true,
+  "message": "User fetched successfully",
+  "data": {
+    "firstName": "Charith"
+  }
+}
+```
+
+For an error:
+
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+Consistency makes frontend integration easier.
+
+### 13.4 Implement validation
+
+Validate:
+- Required fields.
+- Data types.
+- Email formats.
+- String lengths.
+- Allowed values.
+- IDs and query parameters.
+
+Never trust client input.
+
+### 13.5 Implement authentication and authorization
+
+- Authentication answers: Who are you?
+- Authorization answers: What are you allowed to do?
+
+Use secure authentication mechanisms, protect sensitive routes, and check permissions on the server.
+
+### 13.6 Use pagination
+
+Avoid returning thousands of records in one response.
+
+Example:
+
+```text
+GET /users?page=2&limit=10
+```
+
+Example Express logic:
+
+```javascript
+const page = Math.max(Number(req.query.page) || 1, 1);
+const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+const skip = (page - 1) * limit;
+
+const users = await User.find()
+    .skip(skip)
+    .limit(limit);
+```
+
+In production, validate numeric query values carefully and consider cursor-based pagination for large or frequently changing datasets.
+
+### 13.7 Use filtering and sorting
+
+Examples:
+
+```text
+GET /users?firstName=Charith
+GET /users?sortBy=createdAt&order=desc
+GET /products?category=electronics
+```
+
+Only allow approved filter and sort fields. Do not pass arbitrary client-supplied MongoDB query objects directly into database operations.
+
+### 13.8 Version your API when needed
+
+Example:
+
+```text
+/api/v1/users
+/api/v2/users
+```
+
+Versioning helps introduce breaking changes while supporting existing clients.
+
+### 13.9 Protect sensitive information
+
+- Use HTTPS.
+- Keep secrets in environment variables or a secrets manager.
+- Never expose database passwords or access tokens in responses.
+- Hash passwords before storing them.
+- Apply rate limiting where appropriate.
+- Configure CORS intentionally.
+- Log errors without leaking secrets or sensitive personal information.
+
+## 14. Common mistakes
+
+1. Using GET to create or modify a resource.
+2. Using POST for every operation instead of choosing the correct HTTP method.
+3. Confusing PUT with PATCH.
+4. Returning `200 OK` for every response, including errors.
+5. Forgetting `app.use(express.json())` when accepting JSON request bodies in Express.
+6. Reading a path ID from `req.body` instead of `req.params`.
+7. Assuming `findOne()` guarantees a unique result.
+8. Returning database passwords, password hashes, or other sensitive fields.
+9. Not validating request data.
+10. Not handling missing resources and duplicate-key errors.
+11. Assuming CORS is authentication or authorization. It is not.
+12. Assuming REST requires JSON. JSON is common, but REST representations can use other media types.
+
+## 15. REST API vs SOAP vs GraphQL
+
+| Feature | REST | SOAP | GraphQL |
+|---|---|---|---|
+| Type | Architectural style | Messaging protocol | API query language and runtime |
+| Data format | Commonly JSON; not limited to it | XML-based envelope | Commonly JSON responses |
+| Interface | Resource-oriented | Operation/service-oriented | Schema and fields |
+| Requests | Uses HTTP methods commonly | Uses SOAP messages | Commonly sends queries/mutations to one endpoint |
+| Flexibility | Standard resource operations | Strict message structure and standards | Client selects requested fields |
+| Common use | Web and mobile APIs | Enterprise integrations and systems requiring SOAP standards | APIs with flexible data requirements |
+
+## 16. Interview questions and answers
+
+### Q1. What is an API?
+
+An API is an interface that allows software applications to communicate using defined rules and contracts.
+
+### Q2. What is REST?
+
+REST stands for Representational State Transfer. It is an architectural style for designing networked applications using constraints such as stateless communication and a uniform interface.
+
+### Q3. What is a REST API?
+
+A REST API is an API designed around REST principles, commonly exposing resources through URLs and using HTTP methods to operate on them.
+
+### Q4. What are the common HTTP methods used in REST APIs?
+
+GET, POST, PUT, PATCH and DELETE. HEAD and OPTIONS are also standard HTTP methods often supported by APIs.
+
+### Q5. What is the difference between GET and POST?
+
+GET retrieves a resource and should not change its state. POST submits data, commonly to create a resource or initiate an operation.
+
+### Q6. What is the difference between PUT and PATCH?
+
+PUT replaces the target resource representation. PATCH applies a partial modification.
+
+### Q7. What does stateless mean in REST?
+
+Each request must contain the information required to process it. The server does not rely on hidden client session state from a previous request.
+
+### Q8. What is an HTTP status code?
+
+It is a three-digit code in an HTTP response that indicates the result of the request.
+
+### Q9. What is the difference between 401 and 403?
+
+401 means authentication is missing or invalid. 403 means the server understood the request but refuses to authorize it.
+
+### Q10. What is the difference between 404 and 500?
+
+404 means the requested resource was not found. 500 indicates an unexpected server-side error.
+
+### Q11. What is idempotency?
+
+An operation is idempotent when repeating the same request has the same intended effect on server state as performing it once.
+
+### Q12. Is POST idempotent?
+
+POST is not generally idempotent. Repeating a POST request may create multiple resources. An API can implement idempotency keys to make particular POST operations safe to retry.
+
+### Q13. Is DELETE idempotent?
+
+DELETE is defined as idempotent in HTTP semantics. Repeating a delete should leave the resource deleted, although the response may differ between requests.
+
+### Q14. What is the difference between `req.params`, `req.query` and `req.body`?
+
+- `req.params`: values from named URL path segments.
+- `req.query`: values from the URL query string.
+- `req.body`: parsed data sent in the request body.
+
+### Q15. Why do we use `express.json()`?
+
+It parses incoming JSON request bodies and makes the resulting JavaScript value available through `req.body`.
+
+### Q16. Does REST require JSON?
+
+No. JSON is a common representation, but REST can use other representations such as XML or plain text.
+
+### Q17. What is CRUD?
+
+CRUD stands for Create, Read, Update and Delete. These operations commonly map to POST, GET, PUT/PATCH and DELETE.
+
+### Q18. What is the difference between authentication and authorization?
+
+Authentication verifies identity. Authorization checks the permissions of that identity.
+
+## 17. Quick revision
+
+| Concept | Remember |
+|---|---|
+| API | Interface for software communication |
+| REST | Architectural style |
+| REST API | API designed using REST constraints |
+| Resource | Data or entity exposed by an API |
+| GET | Retrieve data |
+| POST | Create or submit data |
+| PUT | Replace a resource |
+| PATCH | Partially update a resource |
+| DELETE | Delete a resource |
+| HEAD | GET-like request without response body |
+| OPTIONS | Discover communication options |
+| `200` | OK |
+| `201` | Created |
+| `204` | No Content |
+| `400` | Bad Request |
+| `401` | Unauthorized / authentication required |
+| `403` | Forbidden |
+| `404` | Not Found |
+| `409` | Conflict |
+| `500` | Internal Server Error |
+| `req.params` | URL path parameters |
+| `req.query` | URL query parameters |
+| `req.body` | Parsed request body |
+| `JSON.stringify()` | JavaScript value to JSON string |
+| `JSON.parse()` | JSON string to JavaScript value |
+
+### The most important HTTP method mapping
+
+```text
+GET     -> Read
+POST    -> Create
+PUT     -> Replace
+PATCH   -> Partial update
+DELETE  -> Delete
+```
+
+**Final takeaway:** A REST API exposes resources through predictable URLs, uses HTTP methods to define operations, communicates through request and response representations, and uses HTTP status codes to describe outcomes.
+---
 [⬆️ Back to Table of Contents](#-table-of-contents)
