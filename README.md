@@ -3953,4 +3953,1070 @@ DELETE  -> Delete
 
 **Final takeaway:** A REST API exposes resources through predictable URLs, uses HTTP methods to define operations, communicates through request and response representations, and uses HTTP status codes to describe outcomes.
 ---
+A practical guide to schema definitions, built-in validators, custom validation, update validation, error handling, and Express.js integration.
+---
+
+## 1. What is Mongoose validation?
+
+Mongoose validation is a feature that checks whether data satisfies rules defined in a Mongoose schema before Mongoose saves or updates that data.
+
+For example, suppose your application registers users. You may want to enforce these rules:
+
+- `firstName` must be provided.
+- `email` must be a valid email format.
+- `age` must be at least 18.
+- `password` must contain at least 8 characters.
+- `gender` must be one of the allowed values.
+
+Mongoose allows you to define these rules in the schema.
+
+```javascript
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true
+    },
+    age: {
+        type: Number,
+        min: 18
+    }
+});
+```
+
+If a document does not satisfy a validation rule, Mongoose normally rejects the save and reports a `ValidationError`.
+
+**Important:** Mongoose validation is application-level validation. For robust systems, also validate incoming request data at the API boundary and use MongoDB indexes or database constraints where appropriate.
+
+## 2. What is a schema?
+
+A schema defines the structure, types, defaults, and rules for documents in a MongoDB collection when using Mongoose.
+
+Example:
+
+```javascript
+const userSchema = new mongoose.Schema({
+    firstName: String,
+    lastName: String,
+    email: String,
+    age: Number
+});
+```
+
+This schema describes the expected fields and their types.
+
+A Mongoose model is created from a schema:
+
+```javascript
+const User = mongoose.model("User", userSchema);
+```
+
+The model is used to create, read, update, and delete documents.
+
+```javascript
+const user = new User({
+    firstName: "Charith",
+    lastName: "Perera",
+    email: "charith@example.com",
+    age: 25
+});
+
+await user.save();
+```
+
+## 3. Why schema validation is important
+
+Without validation, an application may store incomplete, malformed, or unexpected data.
+
+For example, without validation, the database might receive:
+
+```json
+{
+  "firstName": "",
+  "email": "not-an-email",
+  "age": -10
+}
+```
+
+Validation helps maintain data quality and consistency.
+
+Benefits:
+
+1. Prevents invalid data from being saved through Mongoose operations that run validation.
+2. Keeps rules close to the model that owns the data.
+3. Provides clear validation errors.
+4. Reduces inconsistent records.
+5. Helps protect application logic from unexpected values.
+
+Validation is not a substitute for authorization, sanitization, or security controls. Never assume that a valid document is automatically safe to expose or modify.
+
+## 4. Basic schema structure
+
+```javascript
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    age: {
+        type: Number,
+        min: 18,
+        max: 100
+    },
+    email: {
+        type: String,
+        required: true,
+        lowercase: true
+    }
+});
+```
+
+Common schema options:
+
+| Option | Purpose |
+|---|---|
+| `type` | Defines the field's data type |
+| `required` | Requires a value |
+| `default` | Supplies a default value |
+| `min` | Minimum number or date value |
+| `max` | Maximum number or date value |
+| `minlength` | Minimum string length |
+| `maxlength` | Maximum string length |
+| `enum` | Restricts a value to an allowed list |
+| `match` | Validates a string against a regular expression |
+| `trim` | Removes leading and trailing whitespace from strings |
+| `lowercase` | Converts strings to lowercase |
+| `uppercase` | Converts strings to uppercase |
+| `validate` | Defines a custom validator |
+| `immutable` | Prevents a field from being changed after creation through normal Mongoose document updates |
+
+## 5. Schema types and options
+
+Mongoose supports several schema types.
+
+```javascript
+const exampleSchema = new mongoose.Schema({
+    name: String,
+    age: Number,
+    isActive: Boolean,
+    createdAt: Date,
+    tags: [String],
+    scores: [Number],
+    address: {
+        city: String,
+        country: String
+    },
+    metadata: mongoose.Schema.Types.Mixed,
+    userId: mongoose.Schema.Types.ObjectId
+});
+```
+
+Common types:
+
+| Type | Example |
+|---|---|
+| String | `"Charith"` |
+| Number | `25` |
+| Boolean | `true` |
+| Date | `new Date()` |
+| ObjectId | `new mongoose.Types.ObjectId()` |
+| Array | `["Node.js", "Express"]` |
+| Nested object | `{ city: "Bangalore" }` |
+| Mixed | Flexible value of varying structure |
+
+Mongoose may cast values to the schema type. For example, a numeric string such as `"25"` may be cast to the number `25`. If casting fails, Mongoose reports a `CastError`.
+
+## 6. Built-in validators
+
+Mongoose provides built-in validators for common requirements.
+
+| Validator | Applies to | Example |
+|---|---|---|
+| `required` | Most schema types | `required: true` |
+| `min` | Number, Date | `min: 18` |
+| `max` | Number, Date | `max: 100` |
+| `minlength` | String | `minlength: 3` |
+| `maxlength` | String | `maxlength: 30` |
+| `enum` | String, Number | `enum: ["Male", "Female"]` |
+| `match` | String | `match: /pattern/` |
+| `validate` | Custom | Custom function |
+
+## 7. Required validation
+
+`required` ensures that a value is supplied according to the required check for that schema type.
+
+```javascript
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
+    }
+});
+```
+
+This document fails validation because `firstName` and `email` are missing:
+
+```javascript
+const user = new User({
+    age: 25
+});
+
+await user.save(); // ValidationError
+```
+
+You can also provide a custom error message:
+
+```javascript
+firstName: {
+    type: String,
+    required: [true, "First name is required"]
+}
+```
+
+A function can also be used for conditional required validation:
+
+```javascript
+companyName: {
+    type: String,
+    required: function () {
+        return this.accountType === "business";
+    }
+}
+```
+
+For document validation, `this` refers to the document being validated. Context can differ for update validators, so test conditional rules carefully when using query updates.
+
+## 8. String validation
+
+### 8.1 `minlength`
+
+Requires a string to have at least the specified number of characters.
+
+```javascript
+firstName: {
+    type: String,
+    minlength: [2, "First name must contain at least 2 characters"]
+}
+```
+
+### 8.2 `maxlength`
+
+Limits the maximum string length.
+
+```javascript
+lastName: {
+    type: String,
+    maxlength: [30, "Last name cannot exceed 30 characters"]
+}
+```
+
+### 8.3 `trim`
+
+Removes whitespace from the beginning and end of a string.
+
+```javascript
+firstName: {
+    type: String,
+    trim: true
+}
+```
+
+For example, `"  Charith  "` is stored as `"Charith"` after Mongoose applies the setter.
+
+### 8.4 `lowercase`
+
+Converts a string to lowercase.
+
+```javascript
+email: {
+    type: String,
+    lowercase: true,
+    trim: true
+}
+```
+
+For example, `"CHARITH@EXAMPLE.COM"` becomes `"charith@example.com"`.
+
+### 8.5 `uppercase`
+
+Converts a string to uppercase.
+
+```javascript
+countryCode: {
+    type: String,
+    uppercase: true
+}
+```
+
+### 8.6 `match`
+
+Checks whether a string matches a regular expression.
+
+```javascript
+email: {
+    type: String,
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email address"]
+}
+```
+
+This is a basic format check, not proof that the email address exists or belongs to the user. Production email workflows often verify ownership by sending a confirmation link or code.
+
+## 9. Number validation
+
+### 9.1 `min`
+
+Defines the minimum allowed number.
+
+```javascript
+age: {
+    type: Number,
+    min: [18, "Age must be at least 18"]
+}
+```
+
+### 9.2 `max`
+
+Defines the maximum allowed number.
+
+```javascript
+age: {
+    type: Number,
+    max: [100, "Age cannot exceed 100"]
+}
+```
+
+### 9.3 Combined example
+
+```javascript
+age: {
+    type: Number,
+    required: [true, "Age is required"],
+    min: [18, "You must be at least 18"],
+    max: [100, "Age cannot exceed 100"]
+}
+```
+
+If the submitted age is `15`, the minimum validation fails.
+
+If the submitted age is `120`, the maximum validation fails.
+
+## 10. Enum validation
+
+`enum` restricts a field to a predefined set of values.
+
+```javascript
+gender: {
+    type: String,
+    enum: {
+        values: ["Male", "Female", "Other"],
+        message: "Please select a valid gender"
+    }
+}
+```
+
+Valid:
+
+```javascript
+gender: "Male"
+```
+
+Invalid:
+
+```javascript
+gender: "Unknown"
+```
+
+You can also use enum with a JavaScript array:
+
+```javascript
+accountType: {
+    type: String,
+    enum: ["personal", "business"],
+    default: "personal"
+}
+```
+
+Enum validation checks membership in the allowed list. It does not automatically make the field required; add `required: true` if a value must be supplied.
+
+## 11. Date validation
+
+Mongoose supports `min` and `max` for Date fields.
+
+```javascript
+dateOfBirth: {
+    type: Date,
+    required: true,
+    max: [Date.now, "Date of birth cannot be in the future"]
+}
+```
+
+A date range can also be validated:
+
+```javascript
+eventDate: {
+    type: Date,
+    min: new Date("2026-01-01"),
+    max: new Date("2027-12-31")
+}
+```
+
+Be careful with time zones and date-only values. A JavaScript `Date` represents a point in time, not a timezone-free calendar date.
+
+## 12. Array and nested-object validation
+
+### 12.1 Array of strings
+
+```javascript
+skills: {
+    type: [String],
+    validate: {
+        validator: function (skills) {
+            return skills.length > 0;
+        },
+        message: "At least one skill is required"
+    }
+}
+```
+
+This checks that the array has at least one item.
+
+### 12.2 Array item validation
+
+```javascript
+tags: [{
+    type: String,
+    trim: true,
+    minlength: 2
+}]
+```
+
+Each array item is validated as a string with a minimum length of two.
+
+### 12.3 Nested object
+
+```javascript
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true
+    },
+    address: {
+        city: {
+            type: String,
+            required: true
+        },
+        country: {
+            type: String,
+            required: true
+        }
+    }
+});
+```
+
+For more explicit nested validation, define a subdocument schema:
+
+```javascript
+const addressSchema = new mongoose.Schema({
+    city: {
+        type: String,
+        required: true
+    },
+    country: {
+        type: String,
+        required: true
+    }
+}, { _id: false });
+
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: true
+    },
+    address: {
+        type: addressSchema,
+        required: true
+    }
+});
+```
+
+Subdocuments have their own validation and can be validated as part of the parent document.
+
+## 13. Custom synchronous validators
+
+Use a custom validator when built-in validators cannot express your business rule.
+
+Example: a username must not contain spaces.
+
+```javascript
+username: {
+    type: String,
+    required: true,
+    validate: {
+        validator: function (value) {
+            return !/\s/.test(value);
+        },
+        message: "Username must not contain spaces"
+    }
+}
+```
+
+Another example: age must be an even number.
+
+```javascript
+age: {
+    type: Number,
+    validate: {
+        validator: function (value) {
+            return value % 2 === 0;
+        },
+        message: "Age must be an even number"
+    }
+}
+```
+
+A validator can also be written as a function with a custom message:
+
+```javascript
+const userSchema = new mongoose.Schema({
+    password: {
+        type: String,
+        validate: {
+            validator: function (value) {
+                return value.length >= 8;
+            },
+            message: "Password must contain at least 8 characters"
+        }
+    }
+});
+```
+
+Use built-in `minlength` for this particular length rule; the example demonstrates the custom-validator structure.
+
+**Important:** A custom validator normally fails when it returns `false`. If it throws an error, Mongoose treats that as a validation failure as well.
+
+## 14. Asynchronous custom validators
+
+Use asynchronous validators when validation requires an asynchronous operation.
+
+For example, checking a value against an external service:
+
+```javascript
+const userSchema = new mongoose.Schema({
+    invitationCode: {
+        type: String,
+        validate: {
+            validator: async function (value) {
+                const isValid = await checkInvitationCode(value);
+                return isValid;
+            },
+            message: "Invitation code is invalid"
+        }
+    }
+});
+```
+
+`checkInvitationCode` represents an application function that must be implemented.
+
+Do not use an asynchronous validator as the only protection for uniqueness. Two requests can pass an availability check concurrently. Use a MongoDB unique index for actual uniqueness enforcement and handle duplicate-key errors.
+
+## 15. Validation errors
+
+When validation fails, Mongoose throws a `ValidationError`.
+
+Example:
+
+```javascript
+const user = new User({
+    firstName: "",
+    age: 15
+});
+
+try {
+    await user.save();
+} catch (error) {
+    console.log(error.name);
+    console.log(error.message);
+}
+```
+
+Possible output:
+
+```text
+ValidationError
+User validation failed: age: Age must be at least 18
+```
+
+A `ValidationError` can contain individual errors for multiple fields.
+
+```javascript
+try {
+    await user.save();
+} catch (error) {
+    if (error.name === "ValidationError") {
+        for (const field in error.errors) {
+            console.log(field);
+            console.log(error.errors[field].message);
+        }
+    }
+}
+```
+
+A field error commonly contains:
+
+- `name`: error type, such as `ValidatorError` or `CastError`.
+- `path`: field name.
+- `value`: value that failed.
+- `message`: readable error message.
+
+### ValidationError vs CastError
+
+- `ValidationError`: the document failed one or more validation rules. It may contain multiple field errors.
+- `CastError`: Mongoose could not convert a value to the required schema type, such as `"abc"` for a Number field.
+
+A cast failure during document validation is commonly included within the document's `ValidationError.errors` collection.
+
+## 16. When does Mongoose run validation?
+
+### 16.1 When calling `save()`
+
+Mongoose runs validation before saving a document by default.
+
+```javascript
+const user = new User({
+    firstName: "Charith",
+    age: 15
+});
+
+await user.save(); // Fails if age has min: 18
+```
+
+### 16.2 When calling `create()`
+
+`Model.create()` creates and saves documents, so normal document validation runs.
+
+```javascript
+await User.create({
+    firstName: "Charith",
+    age: 25
+});
+```
+
+### 16.3 Manual validation with `validate()`
+
+You can validate a document without saving it:
+
+```javascript
+const user = new User({
+    firstName: "Charith",
+    age: 15
+});
+
+try {
+    await user.validate();
+    console.log("Document is valid");
+} catch (error) {
+    console.log(error.message);
+}
+```
+
+### 16.4 Disable validation before saving
+
+```javascript
+await user.save({ validateBeforeSave: false });
+```
+
+This bypasses Mongoose's normal validation for that save. Avoid using it unless there is a specific, well-understood reason.
+
+## 17. Validation in update operations
+
+A very important Mongoose concept: **update validators are not enabled by default for many query update methods.**
+
+For methods such as `updateOne()`, `updateMany()`, and `findOneAndUpdate()`, pass:
+
+```javascript
+{ runValidators: true }
+```
+
+Example:
+
+```javascript
+const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { age: 15 },
+    {
+        new: true,
+        runValidators: true
+    }
+);
+```
+
+If the schema says `age` must be at least 18, the update fails validation.
+
+### 17.1 `new: true`
+
+For `findByIdAndUpdate()` and `findOneAndUpdate()`, `new: true` requests the updated document as the return value.
+
+Without it, the method returns the document from before the update by default in common Mongoose configurations.
+
+### 17.2 `runValidators: true`
+
+Enables schema validators for the update operation.
+
+```javascript
+await User.updateOne(
+    { email: "charith@example.com" },
+    { $set: { age: 15 } },
+    { runValidators: true }
+);
+```
+
+### 17.3 Important limitations of update validators
+
+Update validators differ from document validation:
+
+1. They generally run only on the paths being updated.
+2. `required` validators usually fail on an update only when the field is explicitly unset.
+3. Validator `this` is generally the query, not the document, for query update validators.
+4. Some update operators have special validation behavior. For example, validators run on values in `$push` operations, but do not validate the entire array as a whole in the same way as document validation.
+5. `bulkWrite()` does not behave like calling `save()` on each document. Do not assume document middleware and validation will run for every bulk operation. Check the Mongoose version and operation options, and validate data explicitly where needed.
+
+For complex business rules involving multiple fields, loading a document, modifying it, and calling `save()` may be easier to reason about than a query update.
+
+## 18. Validation middleware and Express integration
+
+Mongoose validation and Express request validation are related but different.
+
+- Request validation checks incoming client data at the API boundary.
+- Mongoose schema validation protects data when Mongoose performs document validation.
+
+A robust API commonly uses both.
+
+Example Express route:
+
+```javascript
+app.use(express.json());
+
+app.post("/signup", async (req, res) => {
+    try {
+        const { firstName, email, age } = req.body;
+
+        // Basic request validation
+        if (!firstName || !email || age === undefined) {
+            return res.status(400).json({
+                message: "firstName, email and age are required"
+            });
+        }
+
+        const user = await User.create({
+            firstName,
+            email,
+            age
+        });
+
+        return res.status(201).json({
+            message: "User created successfully",
+            data: user
+        });
+
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            const errors = Object.values(error.errors).map(
+                item => item.message
+            );
+
+            return res.status(400).json({
+                message: "Validation failed",
+                errors
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Email already exists"
+            });
+        }
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+});
+```
+
+For production APIs, use a dedicated request validation library or a carefully designed validation layer. Also allowlist accepted fields rather than passing arbitrary `req.body` directly into a model.
+
+### Mongoose validation middleware
+
+Mongoose has document middleware such as `pre("validate")` and `post("validate")`.
+
+```javascript
+userSchema.pre("validate", function (next) {
+    console.log("Validation is about to run");
+    next();
+});
+
+userSchema.post("validate", function (doc) {
+    console.log("Validation completed");
+});
+```
+
+Mongoose's built-in validation is registered as the first `pre("save")` hook. Therefore, changes made in a later `pre("save")` hook are made after validation has already run. If a value must be prepared before validation, use `pre("validate")` or set it before calling `save()`.
+
+Middleware APIs can differ by Mongoose version. Follow the middleware signature supported by the version installed in your project.
+
+## 19. Complete user schema example
+
+This example combines several common validators.
+
+```javascript
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    firstName: {
+        type: String,
+        required: [true, "First name is required"],
+        trim: true,
+        minlength: [2, "First name must contain at least 2 characters"],
+        maxlength: [30, "First name cannot exceed 30 characters"]
+    },
+
+    lastName: {
+        type: String,
+        trim: true,
+        maxlength: [30, "Last name cannot exceed 30 characters"]
+    },
+
+    email: {
+        type: String,
+        required: [true, "Email is required"],
+        lowercase: true,
+        trim: true,
+        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email"],
+        unique: true
+    },
+
+    age: {
+        type: Number,
+        required: [true, "Age is required"],
+        min: [18, "Age must be at least 18"],
+        max: [100, "Age cannot exceed 100"]
+    },
+
+    gender: {
+        type: String,
+        enum: {
+            values: ["Male", "Female", "Other"],
+            message: "Please select a valid gender"
+        }
+    },
+
+    password: {
+        type: String,
+        required: [true, "Password is required"],
+        minlength: [8, "Password must contain at least 8 characters"]
+    },
+
+    skills: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function (skills) {
+                return skills.length <= 20;
+            },
+            message: "A maximum of 20 skills is allowed"
+        }
+    },
+
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: true
+});
+
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
+```
+
+**Security note:** This schema demonstrates validation, not a complete authentication implementation. Hash passwords before storing them, never return password hashes in API responses, and use a unique MongoDB index for email uniqueness. The `unique` option is an index declaration, not a normal Mongoose validator.
+
+Example creating a user:
+
+```javascript
+try {
+    const user = await User.create({
+        firstName: "Charith",
+        lastName: "Perera",
+        email: "charith@example.com",
+        age: 25,
+        gender: "Male",
+        password: "example-password",
+        skills: ["JavaScript", "Node.js", "Express.js"]
+    });
+
+    console.log("User created:", user._id);
+} catch (error) {
+    if (error.name === "ValidationError") {
+        console.log("Schema validation failed:", error.message);
+    } else if (error.code === 11000) {
+        console.log("Duplicate email");
+    } else {
+        console.log("Unexpected error:", error.message);
+    }
+}
+```
+
+## 20. Common mistakes and important notes
+
+### Mistake 1: Thinking `unique: true` is a validator
+
+```javascript
+email: {
+    type: String,
+    unique: true
+}
+```
+
+`unique: true` tells Mongoose to declare a MongoDB unique index. Duplicate values produce a MongoDB duplicate-key error, commonly with code `11000`, not a Mongoose `ValidationError`.
+
+### Mistake 2: Forgetting `runValidators: true`
+
+```javascript
+await User.findByIdAndUpdate(id, { age: 15 });
+```
+
+For query update methods, schema update validators are not enabled by default. Use:
+
+```javascript
+await User.findByIdAndUpdate(
+    id,
+    { age: 15 },
+    { runValidators: true, new: true }
+);
+```
+
+### Mistake 3: Assuming `enum` makes a field required
+
+```javascript
+gender: {
+    type: String,
+    enum: ["Male", "Female", "Other"]
+}
+```
+
+This restricts provided values, but does not by itself require the field. Add `required: true` if necessary.
+
+### Mistake 4: Assuming all update methods run full document validation
+
+Query update validators have limitations and do not behave exactly like validating a complete document with `save()`.
+
+### Mistake 5: Trusting frontend validation alone
+
+A user can bypass frontend checks and send a request directly through Postman, curl, or another client. Validate data on the server.
+
+### Mistake 6: Returning raw internal errors to clients
+
+Avoid exposing stack traces, database details, or secrets. Log diagnostic details on the server and return safe, useful error messages.
+
+## 21. Interview questions and answers
+
+### Q1. What is schema validation in Mongoose?
+
+Schema validation checks whether document values satisfy rules defined in a Mongoose schema before they are saved or updated through operations that run validation.
+
+### Q2. What is the difference between schema and model?
+
+A schema defines document structure, types, and rules. A model is compiled from a schema and provides methods to interact with a MongoDB collection.
+
+### Q3. What is `required: true`?
+
+It makes a field required according to the required validator for that schema type.
+
+### Q4. What is the difference between `min` and `minlength`?
+
+`min` validates the minimum numeric or date value. `minlength` validates the minimum number of characters in a string.
+
+### Q5. What is enum validation?
+
+Enum validation restricts a field to a predefined list of allowed values.
+
+### Q6. What is custom validation?
+
+Custom validation uses a function to check a business rule that built-in validators cannot express directly.
+
+### Q7. What is a ValidationError?
+
+It is a Mongoose error raised when one or more document validation rules fail. It can contain individual errors for multiple fields.
+
+### Q8. What is a CastError?
+
+It occurs when Mongoose cannot convert a value to the schema's required type, such as converting `"hello"` into a Number.
+
+### Q9. Does Mongoose validate documents automatically?
+
+Mongoose runs validation automatically before `save()` by default. `create()` also saves documents and runs validation.
+
+### Q10. Does `findByIdAndUpdate()` run validators automatically?
+
+Not by default in common Mongoose configurations. Pass `{ runValidators: true }` to enable update validators.
+
+### Q11. What is the difference between `save()` and `findByIdAndUpdate()` for validation?
+
+`save()` validates the document being saved. `findByIdAndUpdate()` is a query update and requires `runValidators: true` for update validators; those validators have different limitations.
+
+### Q12. Is `unique: true` a validator?
+
+No. It declares a MongoDB unique index. Duplicate-key errors must be handled separately from Mongoose validation errors.
+
+### Q13. What is the purpose of `trim: true`?
+
+It removes leading and trailing whitespace from a string when Mongoose applies the setter.
+
+### Q14. What is the purpose of `default`?
+
+It supplies a value when a field is `undefined` and a default is configured.
+
+### Q15. Why validate data on the backend if the frontend already validates it?
+
+Frontend validation improves user experience, but it can be bypassed. Backend validation is required to protect data integrity.
+
+## 22. Quick revision
+
+| Option / concept | Purpose |
+|---|---|
+| `type` | Defines the field type |
+| `required` | Requires a value |
+| `default` | Sets a default value |
+| `min` | Minimum number/date |
+| `max` | Maximum number/date |
+| `minlength` | Minimum string length |
+| `maxlength` | Maximum string length |
+| `enum` | Allows only listed values |
+| `match` | Checks a regular-expression pattern |
+| `trim` | Removes outer whitespace |
+| `lowercase` | Converts string to lowercase |
+| `uppercase` | Converts string to uppercase |
+| `validate` | Defines a custom validator |
+| `validate()` | Manually validates a document |
+| `runValidators: true` | Enables validators for query updates |
+| `ValidationError` | One or more schema validation failures |
+| `CastError` | Value cannot be cast to schema type |
+| `unique: true` | Declares a unique index; not a validator |
+
+### Final takeaway
+
+Mongoose schema validation helps enforce data rules at the model layer. Use built-in validators for common rules, custom validators for business-specific rules, `runValidators: true` for query updates, and proper Express error handling to return meaningful API responses. Always validate incoming requests as well, and use MongoDB indexes for database-level uniqueness.
+---
 [⬆️ Back to Table of Contents](#-table-of-contents)
